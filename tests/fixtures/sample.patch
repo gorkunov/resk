@@ -1,0 +1,99 @@
+diff --git a/README.md b/README.md
+index 04d7de7..16697c9 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,3 @@
+ # Demo
+ 
+-A demo project.
+\ No newline at end of file
++A demo project with server-side token refresh.
+diff --git a/assets/logo.png b/assets/logo.png
+new file mode 100644
+index 0000000..b437676
+Binary files /dev/null and b/assets/logo.png differ
+diff --git a/src/auth/token.ts b/src/auth/token.ts
+deleted file mode 100644
+index 94c1b0a..0000000
+--- a/src/auth/token.ts
++++ /dev/null
+@@ -1,12 +0,0 @@
+-export interface Token {
+-  value: string;
+-  expiresAt: number;
+-}
+-
+-export function refreshOnClient(token: Token): Token {
+-  const now = Date.now();
+-  if (token.expiresAt > now) {
+-    return token;
+-  }
+-  return { value: token.value + '!', expiresAt: now + 3600_000 };
+-}
+diff --git a/src/routes/auth.ts b/src/routes/auth.ts
+new file mode 100644
+index 0000000..ab2633b
+--- /dev/null
++++ b/src/routes/auth.ts
+@@ -0,0 +1,9 @@
++import { Router } from 'express';
++import { rateLimit } from '../middleware/rate-limit';
++
++export const authRouter = Router();
++
++authRouter.post('/auth/refresh', rateLimit({ max: 10 }), async (req, res) => {
++  const session = await req.services.users.refreshSession(req.body.token);
++  res.json({ session });
++});
+diff --git a/src/services/user.ts b/src/services/user.ts
+index 6ccbcbb..27c57b2 100644
+--- a/src/services/user.ts
++++ b/src/services/user.ts
+@@ -1,17 +1,22 @@
+-import { Token } from '../auth/token';
++import { RefreshToken } from '../auth/refresh';
+ 
+ export class UserService {
+-  constructor(private readonly db: Db) {}
++  constructor(
++    private readonly db: Db,
++    private readonly clock: Clock,
++  ) {}
+ 
+   async find(id: string): Promise<User | null> {
+     return this.db.users.find(id);
+   }
+ 
+-  async refresh(token: Token): Promise<Session> {
++  async refreshSession(token: RefreshToken): Promise<Session> {
+     const session = await this.db.sessions.byToken(token);
+     if (!session) {
+       throw new Error('no session');
+     }
++    const timeout = 3000;
++    await refresh(token, timeout);
+     return session;
+   }
+ 
+@@ -20,6 +25,7 @@ export class UserService {
+   }
+ 
+   async remove(id: string): Promise<void> {
++    await this.db.sessions.revokeAll(id);
+     await this.db.users.remove(id);
+   }
+ }
+diff --git a/src/utils/time.ts b/src/utils/clock.ts
+similarity index 83%
+rename from src/utils/time.ts
+rename to src/utils/clock.ts
+index 02c81a1..43fbc49 100644
+--- a/src/utils/time.ts
++++ b/src/utils/clock.ts
+@@ -3,5 +3,5 @@ export function nowSeconds(): number {
+ }
+ 
+ export function addHours(ts: number, hours: number): number {
+-  return ts + hours * 3600;
++  return ts + hours * 3_600;
+ }
