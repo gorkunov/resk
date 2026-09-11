@@ -33,8 +33,7 @@ node dist/cli/index.js --summary examples/summary.md --diff examples/changes.pat
    get a dot, and the panel header shows a count.
 4. Use **Comment** in a panel header for a whole-file note. On the summary, select any text: a
    **Comment** button appears and the comment is anchored to that text, which stays underlined.
-   Click underlined text to see or delete its comments. **Comment on summary** in the top bar is
-   for a general note.
+   Click underlined text to see, edit or delete its comments.
 5. Toggle **Unified/Split** and the theme button.
 6. Click **Finish review**. The terminal where you started resk prints the comments as Markdown and
    the process exits. Add `-- --json` to `npm run example` to get JSON instead.

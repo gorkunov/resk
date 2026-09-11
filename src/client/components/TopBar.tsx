@@ -4,11 +4,10 @@ import type { Theme } from '../state/reducer.js';
 const THEME_ICON: Record<Theme, string> = { system: '◐', light: '☀', dark: '☾' };
 
 interface TopBarProps {
-  onCommentSummary: () => void;
   onFinish: () => void;
 }
 
-export function TopBar({ onCommentSummary, onFinish }: TopBarProps) {
+export function TopBar({ onFinish }: TopBarProps) {
   const { review, state, dispatch } = useStore();
 
   return (
@@ -31,14 +30,6 @@ export function TopBar({ onCommentSummary, onFinish }: TopBarProps) {
           className="grid h-8 w-8 place-items-center rounded-md text-base hover:bg-neutral-100 dark:hover:bg-neutral-800"
         >
           {THEME_ICON[state.theme]}
-        </button>
-        <button
-          type="button"
-          data-testid="comment-summary-button"
-          onClick={onCommentSummary}
-          className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
-        >
-          Comment on summary
         </button>
         <button
           type="button"

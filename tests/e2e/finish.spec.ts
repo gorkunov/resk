@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures.js';
 import { DEFAULT_ARGS, launchResk } from './launch.js';
 import type { Page } from '@playwright/test';
+import { selectText } from './select-text.js';
 
 async function addLineComment(page: Page, body: string) {
   await page.getByTestId('highlight').filter({ hasText: 'UserService' }).click();
@@ -12,10 +13,12 @@ async function addLineComment(page: Page, body: string) {
 }
 
 async function addSummaryComment(page: Page, body: string) {
-  await page.getByTestId('comment-summary-button').click();
-  const composer = page.getByTestId('summary-comments').getByTestId('comment-composer');
+  await selectText(page, 'Token refresh moved');
+  await page.getByTestId('selection-comment-button').click();
+  const composer = page.getByTestId('selection-popover').getByTestId('comment-composer');
   await composer.getByRole('textbox').fill(body);
   await composer.getByTestId('composer-submit').click();
+  await expect(page.getByTestId('selection-popover')).toHaveCount(0);
 }
 
 test.describe('finish review', () => {
@@ -58,7 +61,7 @@ test.describe('finish review', () => {
         '# Review comments (2)',
         '',
         '## Summary',
-        '- Split this into two PRs.',
+        '- On "Token refresh moved": Split this into two PRs.',
         '',
         '## src/services/user.ts',
         '- L18 (new): Why is the timeout hardcoded?',
@@ -90,7 +93,10 @@ test.describe('finish review', () => {
     await page.getByTestId('finish-confirm').click();
     expect(await resk.exit).toBe(0);
     const parsed = JSON.parse(resk.stdout());
-    expect(parsed.comments[0]).toMatchObject({ target: { kind: 'summary' }, body: 'overall' });
+    expect(parsed.comments[0]).toMatchObject({
+      target: { kind: 'summary-selection', quote: 'Token refresh moved' },
+      body: 'overall',
+    });
   });
 });
 

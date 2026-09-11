@@ -13,6 +13,7 @@ test.describe('initial load', () => {
   test('shows the review title and the changed files list with counts', async ({ page, resk }) => {
     await page.goto(resk.url);
     await expect(page.getByTestId('review-title')).toHaveText('sample.patch');
+    await expect(page.getByTestId('comment-summary-button')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Changed files (6)' })).toBeVisible();
     const rows = page.getByTestId('file-row');
     await expect(rows).toHaveCount(6);

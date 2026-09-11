@@ -1,9 +1,10 @@
 import { test, expect } from './fixtures.js';
 import type { Page } from '@playwright/test';
 
-async function addSummaryComment(page: Page, body: string) {
-  await page.getByTestId('comment-summary-button').click();
-  const composer = page.getByTestId('summary-comments').getByTestId('comment-composer');
+async function addLineComment(page: Page, line: number, body: string) {
+  const panel = page.locator('[data-testid="panel"][data-path="src/services/user.ts"]');
+  await panel.locator(`[data-column-number="${line}"]`).first().click();
+  const composer = panel.getByTestId('comment-composer');
   await composer.getByRole('textbox').fill(body);
   await composer.getByTestId('composer-submit').click();
 }
@@ -20,12 +21,15 @@ test.describe('resilience', () => {
       return route.continue();
     });
     await page.goto(resk.url);
-    await addSummaryComment(page, 'first');
+    await page.getByTestId('highlight').filter({ hasText: 'UserService' }).click();
+    const panel = page.locator('[data-testid="panel"][data-path="src/services/user.ts"]');
+    await expect(panel.locator('[data-column-number="18"]').first()).toBeVisible();
+    await addLineComment(page, 18, 'first');
     await expect(page.getByTestId('sync-error')).toBeVisible();
-    await expect(page.getByTestId('summary-comments').getByTestId('comment-card')).toHaveCount(1);
+    await expect(panel.getByTestId('comment-card')).toHaveCount(1);
 
     fail = false;
-    await addSummaryComment(page, 'second');
+    await addLineComment(page, 19, 'second');
     await expect(page.getByTestId('sync-error')).toHaveCount(0);
     await expect
       .poll(async () => (await (await fetch(`${resk.url}/api/comments`)).json()).length)

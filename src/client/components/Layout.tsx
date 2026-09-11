@@ -8,7 +8,6 @@ import { FinishDialog } from './FinishDialog.jsx';
 
 export function Layout({ onFinished }: { onFinished: () => void }) {
   const { state, syncError } = useStore();
-  const [summaryComposerOpen, setSummaryComposerOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | undefined>(undefined);
@@ -29,7 +28,6 @@ export function Layout({ onFinished }: { onFinished: () => void }) {
   return (
     <div className="flex h-full flex-col" data-testid="layout" data-panels={panelCount}>
       <TopBar
-        onCommentSummary={() => setSummaryComposerOpen(true)}
         onFinish={() => {
           setFinishError(undefined);
           setFinishOpen(true);
@@ -61,10 +59,7 @@ export function Layout({ onFinished }: { onFinished: () => void }) {
           }
         >
           <div className={hasPanels ? 'px-6 py-6' : 'mx-auto max-w-3xl px-6 py-10'}>
-            <SummaryPane
-              composerOpen={summaryComposerOpen}
-              onCloseComposer={() => setSummaryComposerOpen(false)}
-            />
+            <SummaryPane />
           </div>
         </div>
         {hasPanels && (

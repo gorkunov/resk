@@ -11,7 +11,7 @@ printed to the agent's stdout.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ resk · feature/auth vs main                 ◐   Comment on summary  Finish │
+│ resk · feature/auth vs main                                  ◐   Finish   │
 ├──────────────────────┬───────────────────────────────────────────────────┤
 │ ## Critical          │ ┌─ M src/services/user.ts   +40 −12   Unified  × ┐ │
 │ Token refresh moved  │ │  13  async refreshSession(token: RefreshToken)  │ │
@@ -104,8 +104,8 @@ Markdown by default:
 # Review comments (4)
 
 ## Summary
-- Split this into two PRs; the migration should ship first.
 - On "rate-limited endpoint": Which limit applies to the retry path?
+- On "the migration should ship first": Split this into two PRs.
 
 ## src/services/user.ts
 - (file) Please add a unit test for the retry path.
@@ -114,7 +114,7 @@ Markdown by default:
   > +    await refresh(token, timeout);
 ```
 
-Comments on a text selection in the summary start with `On "<selected text>":`. With `--json`, an
+Summary comments are anchored to a text selection and start with `On "<selected text>":`. With `--json`, an
 object `{ "title": ..., "comments": [...] }` where each line comment carries an `excerpt` array
 with the referenced diff lines and selection comments carry the quote and its offsets in the
 target. No comments prints `No review comments.`

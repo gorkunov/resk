@@ -82,8 +82,8 @@ Renamed helpers in [utils/time.ts](diff:src/utils/time.ts); test updates in `tes
 # Review comments (4)
 
 ## Summary
-- Split this into two PRs; the migration should ship first.
 - On "rate-limited endpoint": Which limit applies to the retry path?
+- On "the migration should ship first": Split this into two PRs.
 
 ## src/services/user.ts
 - (file) Please add a unit test for the retry path.
@@ -92,9 +92,8 @@ Renamed helpers in [utils/time.ts](diff:src/utils/time.ts); test updates in `tes
   > +    await refresh(token, timeout);
 ```
 
-Summary comments come in two forms: general ones, and ones anchored to a text selection, written
-as `On "<selected text>": <comment>`. Treat the quoted text as the part of your summary the user is
-reacting to.
+Summary comments are anchored to a text selection and written as `On "<selected text>": <comment>`.
+Treat the quoted text as the part of your summary the user is reacting to.
 
 ## Constraints
 

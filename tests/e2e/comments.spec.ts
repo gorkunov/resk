@@ -93,19 +93,6 @@ test.describe('comments', () => {
     await expect(fileRow(page, 'src/services/user.ts').getByTestId('comment-dot')).toBeVisible();
   });
 
-  test('summary comments live at the top of the summary column', async ({ page, resk }) => {
-    await page.goto(resk.url);
-    await page.getByTestId('comment-summary-button').click();
-    const composer = page.getByTestId('summary-comments').getByTestId('comment-composer');
-    await expect(composer).toBeVisible();
-    await composer.getByRole('textbox').fill('Split this into two PRs.');
-    await composer.getByTestId('composer-submit').click();
-    const card = page.getByTestId('summary-comments').getByTestId('comment-card');
-    await expect(card).toHaveAttribute('data-target', 'summary');
-    await expect(card).toContainText('Split this into two PRs.');
-    await expect(page.getByTestId('comment-dot')).toHaveCount(0);
-  });
-
   test('comments can be edited and deleted, and dots disappear with the last comment', async ({
     page,
     resk,

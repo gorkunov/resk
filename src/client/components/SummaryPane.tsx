@@ -11,14 +11,8 @@ import {
 import { useStore } from '../state/store.jsx';
 import { Markdown } from './Markdown.jsx';
 import { ChangedFiles } from './ChangedFiles.jsx';
-import { SummaryComments } from './SummaryComments.jsx';
 import { CommentCard } from './CommentCard.jsx';
 import { CommentComposer } from './CommentComposer.jsx';
-
-interface SummaryPaneProps {
-  composerOpen: boolean;
-  onCloseComposer: () => void;
-}
 
 /** A rectangle relative to the pane wrapper, so it stays put while the column scrolls. */
 interface Box {
@@ -56,7 +50,7 @@ function clampLeft(left: number, width: number, wrapper: HTMLElement): number {
   return Math.max(0, Math.min(left, wrapper.clientWidth - width));
 }
 
-export function SummaryPane({ composerOpen, onCloseComposer }: SummaryPaneProps) {
+export function SummaryPane() {
   const { review, state, dispatch } = useStore();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
@@ -175,7 +169,6 @@ export function SummaryPane({ composerOpen, onCloseComposer }: SummaryPaneProps)
 
   return (
     <section data-testid="summary" ref={wrapperRef} className="relative">
-      <SummaryComments composerOpen={composerOpen} onCloseComposer={onCloseComposer} />
       <div ref={markdownRef} data-testid="summary-markdown" onClick={onMarkdownClick}>
         <Markdown source={review.summary} />
       </div>
