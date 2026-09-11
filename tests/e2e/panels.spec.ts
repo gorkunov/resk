@@ -164,6 +164,26 @@ test.describe('sticky panel header', () => {
 });
 
 test.describe('focus scrolling', () => {
+  test('the range ends up in view even when the pane-opening animation is slow', async ({
+    page,
+    resk,
+  }) => {
+    // Slow every CSS animation 10x so the summary column takes ~2 s to shrink; the diff reflows
+    // during that time, which used to leave a one-shot scroll pointing at the wrong place.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Animation.enable');
+    await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await page.goto(resk.url);
+    await highlight(page, 'remove()').click();
+    const line = panelFor(page, 'src/services/user.ts')
+      .locator('[data-line-type]')
+      .filter({ hasText: 'revokeAll' });
+    await expect(line).toBeInViewport({ timeout: 8_000 });
+    await page.waitForTimeout(2_500);
+    await expect(line).toBeInViewport();
+  });
+
   test('the range stays in view when content above it grows shortly after opening', async ({
     page,
     resk,
