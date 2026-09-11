@@ -103,6 +103,17 @@ test.describe('summary selection comments', () => {
     await expect.poll(() => highlightedTexts(page)).toEqual(['Token refresh moved']);
   });
 
+  test('the popover spans the full width of the summary text', async ({ page, resk }) => {
+    await page.goto(resk.url);
+    await selectText(page, 'Renamed helpers');
+    await page.getByTestId('selection-comment-button').click();
+    const popover = (await page.getByTestId('selection-popover').boundingBox())!;
+    const summary = (await page.getByTestId('summary-markdown').boundingBox())!;
+    expect(Math.abs(popover.x - summary.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(popover.width - summary.width)).toBeLessThanOrEqual(1);
+    expect(popover.width).toBeGreaterThan(500);
+  });
+
   test('multiple selections are underlined independently and clicking one opens its comment', async ({
     page,
     resk,

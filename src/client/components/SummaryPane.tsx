@@ -37,11 +37,9 @@ interface PendingSelection {
 }
 
 type Popover =
-  | { kind: 'compose'; selection: PendingSelection; left: number }
-  | { kind: 'view'; ids: string[]; box: Box; left: number };
+  { kind: 'compose'; selection: PendingSelection } | { kind: 'view'; ids: string[]; box: Box };
 
 const HIGHLIGHT_NAME = 'resk-comment';
-const POPOVER_WIDTH = 360;
 const BUTTON_WIDTH = 96;
 
 function relativeBox(rect: DOMRect, wrapper: HTMLElement): Box {
@@ -133,13 +131,8 @@ export function SummaryPane({ composerOpen, onCloseComposer }: SummaryPaneProps)
   }, [popover]);
 
   const startCompose = (): void => {
-    const wrapper = wrapperRef.current;
-    if (!pending || !wrapper) return;
-    setPopover({
-      kind: 'compose',
-      selection: pending,
-      left: clampLeft(pending.box.left, POPOVER_WIDTH, wrapper),
-    });
+    if (!pending) return;
+    setPopover({ kind: 'compose', selection: pending });
   };
 
   const submitSelectionComment = (body: string): void => {
@@ -172,12 +165,7 @@ export function SummaryPane({ composerOpen, onCloseComposer }: SummaryPaneProps)
       range ? range.getBoundingClientRect() : new DOMRect(event.clientX, event.clientY, 0, 0),
       wrapper,
     );
-    setPopover({
-      kind: 'view',
-      ids: hits.map((c) => c.id),
-      box,
-      left: clampLeft(box.left, POPOVER_WIDTH, wrapper),
-    });
+    setPopover({ kind: 'view', ids: hits.map((c) => c.id), box });
   };
 
   const viewedComments: Comment[] =
@@ -212,12 +200,7 @@ export function SummaryPane({ composerOpen, onCloseComposer }: SummaryPaneProps)
           ref={popoverRef}
           data-testid="selection-popover"
           role="dialog"
-          style={{
-            top: popoverBox.bottom + 8,
-            left: popover.left,
-            width: POPOVER_WIDTH,
-            maxWidth: '100%',
-          }}
+          style={{ top: popoverBox.bottom + 8, left: 0, right: 0 }}
           className="absolute z-30 rounded-lg border border-neutral-200 bg-white p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
         >
           {popover.kind === 'compose' ? (
