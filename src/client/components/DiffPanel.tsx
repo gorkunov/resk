@@ -138,7 +138,7 @@ export function DiffPanel({ file, panel }: DiffPanelProps) {
       data-path={file.path}
       data-diff-style={panel.diffStyle}
       data-focus={focusLabel(panel.focus)}
-      className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+      className="overflow-clip rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
     >
       <header
         data-testid="panel-header"

@@ -129,3 +129,36 @@ test.describe('diff panels', () => {
     await expect(header).toContainText('src/utils/time.ts');
   });
 });
+
+test.describe('sticky panel header', () => {
+  test('the file header stays visible while scrolling a tall diff and can still close the panel', async ({
+    page,
+    resk,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 420 });
+    await page.goto(resk.url);
+    await highlight(page, 'UserService').click();
+    const panel = panelFor(page, 'src/services/user.ts');
+    const header = panel.getByTestId('panel-header');
+    const column = page.getByTestId('diff-column');
+    await expect(panel.locator('[data-line-type]').first()).toBeVisible();
+
+    const panelHeight = (await panel.boundingBox())!.height;
+    const columnBox = (await column.boundingBox())!;
+    expect(panelHeight).toBeGreaterThan(columnBox.height);
+
+    await column.evaluate((el) => {
+      el.scrollTop = 250;
+    });
+    await expect.poll(() => column.evaluate((el) => el.scrollTop)).toBe(250);
+
+    const headerBox = (await header.boundingBox())!;
+    expect(headerBox.y).toBeGreaterThanOrEqual(columnBox.y - 1);
+    expect(headerBox.y).toBeLessThanOrEqual(columnBox.y + 1);
+    await expect(header).toBeInViewport();
+    await expect(header).toContainText('src/services/user.ts');
+
+    await panel.getByTestId('panel-close').click();
+    await expect(panels(page)).toHaveCount(0);
+  });
+});
