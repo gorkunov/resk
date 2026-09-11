@@ -89,6 +89,23 @@ test.describe('typography', () => {
 });
 
 test.describe('highlight rendering', () => {
+  test('chips are shorter than the line pitch so stacked highlights keep a gap', async ({
+    page,
+    resk,
+  }) => {
+    await page.goto(resk.url);
+    const chip = highlight(page, 'UserService');
+    await chip.click();
+    await expect(chip).toHaveAttribute('data-state', 'open');
+    const { chipHeight, lineHeight } = await chip.evaluate((button) => ({
+      chipHeight: button.getBoundingClientRect().height,
+      lineHeight: parseFloat(getComputedStyle(button.closest('p')!).lineHeight),
+    }));
+    expect(lineHeight).toBeGreaterThan(0);
+    expect(chipHeight).toBeLessThanOrEqual(lineHeight - 3);
+    expect(chipHeight).toBeGreaterThanOrEqual(20);
+  });
+
   test('a code span inside a highlight inherits the chip colors in every state', async ({
     page,
     resk,

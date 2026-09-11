@@ -11,7 +11,7 @@ interface HighlightProps {
 }
 
 const BASE =
-  'relative inline rounded px-1 py-0.5 align-baseline text-left font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400';
+  'relative inline-block rounded px-1 py-0 align-baseline text-left font-medium leading-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400';
 
 export function Highlight({ raw, children }: HighlightProps) {
   const { review, state, dispatch } = useStore();
