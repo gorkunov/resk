@@ -162,3 +162,108 @@ test.describe('sticky panel header', () => {
     await expect(panels(page)).toHaveCount(0);
   });
 });
+
+test.describe('focus scrolling', () => {
+  test('the range stays in view when content above it grows shortly after opening', async ({
+    page,
+    resk,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 420 });
+    await page.goto(resk.url);
+    await highlight(page, 'README').click();
+    await highlight(page, 'remove()').click();
+    const line = panelFor(page, 'src/services/user.ts')
+      .locator('[data-line-type]')
+      .filter({ hasText: 'revokeAll' });
+    await expect(line).toBeInViewport();
+
+    // Simulate late layout work above the target (fonts, async highlighting, other panels).
+    await page.locator('[data-testid="panel"][data-path="README.md"]').evaluate((panel) => {
+      const spacer = document.createElement('div');
+      spacer.style.height = '500px';
+      spacer.dataset.testid = 'late-spacer';
+      panel.appendChild(spacer);
+    });
+    await expect(page.getByTestId('late-spacer')).toBeAttached();
+    await expect(line).toBeInViewport();
+  });
+
+  test('a range whose lines are not in the diff scrolls to the nearest rendered line', async ({
+    page,
+  }) => {
+    const { launchResk } = await import('./launch.js');
+    const resk = await launchResk([
+      '--summary',
+      'gap-summary.md',
+      '--diff',
+      'gap.patch',
+      '--keep-alive',
+    ]);
+    try {
+      await page.setViewportSize({ width: 1280, height: 420 });
+      await page.goto(resk.url);
+      await highlight(page, 'gap').click();
+      const panel = panelFor(page, 'src/gap.ts');
+      await expect(panel).toHaveAttribute('data-focus', 'new:300-300');
+      // New line 300 lies between the hunks; the closest rendered new-side line is 203.
+      await expect(
+        panel.locator('[data-line="203"][data-line-type^="context"]').first(),
+      ).toBeInViewport();
+    } finally {
+      await resk.kill();
+    }
+  });
+
+  test('split view focuses the right side of the diff', async ({ page, resk }) => {
+    await page.setViewportSize({ width: 1280, height: 420 });
+    await page.goto(resk.url);
+    await highlight(page, 'UserService').click();
+    const panel = panelFor(page, 'src/services/user.ts');
+    await panel.getByTestId('diff-style-toggle').click();
+    await expect(panel).toHaveAttribute('data-diff-style', 'split');
+    await highlight(page, 'remove()').click();
+    await expect(
+      panel.locator('[data-line-type]').filter({ hasText: 'revokeAll' }).first(),
+    ).toBeInViewport();
+    await highlight(page, 'auth/token.ts').click();
+    const token = panelFor(page, 'src/auth/token.ts');
+    await token.getByTestId('diff-style-toggle').click();
+    await highlight(page, 'auth/token.ts').click();
+    await expect(
+      token.locator('[data-line-type]').filter({ hasText: 'refreshOnClient' }).first(),
+    ).toBeInViewport();
+  });
+
+  test('the first click on a highlight scrolls a freshly opened panel to the linked range', async ({
+    page,
+    resk,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 420 });
+    await page.goto(resk.url);
+    await highlight(page, 'remove()').click();
+    const panel = panelFor(page, 'src/services/user.ts');
+    await expect(panel).toHaveAttribute('data-focus', 'new:28-28');
+    const line = panel.locator('[data-line-type]').filter({ hasText: 'revokeAll' });
+    await expect(line).toBeInViewport();
+  });
+
+  test('a highlight into a file whose panel is open but scrolled away brings the range into view', async ({
+    page,
+    resk,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 420 });
+    await page.goto(resk.url);
+    await highlight(page, 'auth/token.ts').click();
+    await highlight(page, 'README').click();
+    await expect(panels(page)).toHaveCount(2);
+    const column = page.getByTestId('diff-column');
+    await column.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await highlight(page, 'auth/token.ts').click();
+    const line = panelFor(page, 'src/auth/token.ts')
+      .locator('[data-line-type]')
+      .filter({ hasText: 'refreshOnClient' });
+    await expect(line).toBeInViewport();
+  });
+});

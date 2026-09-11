@@ -24,7 +24,8 @@ describe('startServer', () => {
     running.push(first);
     const second = await startServer(app, { host: '127.0.0.1', port: first.port });
     running.push(second);
-    expect(second.port).toBe(first.port + 1);
+    // Another process may hold the next port, so only require a different, higher port.
+    expect(second.port).toBeGreaterThan(first.port);
   });
 
   it('gives up after the configured number of attempts', async () => {
