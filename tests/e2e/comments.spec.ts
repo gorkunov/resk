@@ -21,7 +21,10 @@ async function openUserPanel(page: Page) {
 }
 
 test.describe('comments', () => {
-  test('clicking a line number opens a composer and submitting creates a line comment with dots', async ({ page, resk }) => {
+  test('clicking a line number opens a composer and submitting creates a line comment with dots', async ({
+    page,
+    resk,
+  }) => {
     await page.goto(resk.url);
     const panel = await openUserPanel(page);
     await panel.locator('[data-column-number="18"]').first().click();
@@ -103,7 +106,10 @@ test.describe('comments', () => {
     await expect(page.getByTestId('comment-dot')).toHaveCount(0);
   });
 
-  test('comments can be edited and deleted, and dots disappear with the last comment', async ({ page, resk }) => {
+  test('comments can be edited and deleted, and dots disappear with the last comment', async ({
+    page,
+    resk,
+  }) => {
     await page.goto(resk.url);
     const panel = await openUserPanel(page);
     await panel.locator('[data-column-number="18"]').first().click();
@@ -143,11 +149,15 @@ test.describe('comments', () => {
     await panel.locator('[data-column-number="18"]').first().click();
     await panel.getByTestId('comment-composer').getByRole('textbox').fill('persist me');
     await panel.getByTestId('composer-submit').click();
-    await expect.poll(async () => (await (await fetch(`${resk.url}/api/comments`)).json()).length).toBe(1);
+    await expect
+      .poll(async () => (await (await fetch(`${resk.url}/api/comments`)).json()).length)
+      .toBe(1);
 
     await page.reload();
     await expect(fileRow(page, 'src/services/user.ts').getByTestId('comment-dot')).toBeVisible();
     await highlight(page, 'UserService').click();
-    await expect(panelFor(page, 'src/services/user.ts').getByTestId('comment-card')).toContainText('persist me');
+    await expect(panelFor(page, 'src/services/user.ts').getByTestId('comment-card')).toContainText(
+      'persist me',
+    );
   });
 });

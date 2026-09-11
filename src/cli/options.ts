@@ -1,4 +1,9 @@
+import { createRequire } from 'node:module';
 import { Command, CommanderError, InvalidArgumentError } from 'commander';
+
+const { version: VERSION } = createRequire(import.meta.url)('../../package.json') as {
+  version: string;
+};
 
 export interface CliOptions {
   summary: string;
@@ -22,6 +27,14 @@ export class CliUsageError extends Error {
   }
 }
 
+/** Thrown for --help and --version: `text` is what should be printed before exiting 0. */
+export class CliInfoRequest extends Error {
+  constructor(readonly text: string) {
+    super('informational output requested');
+    this.name = 'CliInfoRequest';
+  }
+}
+
 function nonNegativeInt(value: string): number {
   if (!/^\d+$/.test(value)) throw new InvalidArgumentError('expected a non-negative integer');
   return Number(value);
@@ -31,11 +44,8 @@ export function buildProgram(): Command {
   return new Command()
     .name('resk')
     .description('Summary-first local code review for AI coding agents')
-    .argument(
-      '[target]',
-      '"." (working tree), "staged", "working", a ref, or "@" for HEAD',
-      undefined,
-    )
+    .version(VERSION, '--version', 'print the version')
+    .argument('[target]', '"." (working tree), "staged", "working", a ref, or "@" for HEAD')
     .argument('[compare-with]', 'ref to compare the target against')
     .requiredOption('--summary <path>', 'Markdown summary file ("-" reads stdin)')
     .option(
@@ -53,17 +63,30 @@ export function buildProgram(): Command {
     .allowExcessArguments(false);
 }
 
-/** Parses user arguments (without node/script). Throws CliUsageError with a readable message. */
+/**
+ * Parses user arguments (without node/script). Throws CliUsageError with a readable message, or
+ * CliInfoRequest for --help and --version.
+ */
 export function parseCliArgs(argv: string[]): CliOptions {
+  let output = '';
   const program = buildProgram()
     .exitOverride()
-    .configureOutput({ writeErr: () => {}, writeOut: () => {} });
+    .configureOutput({
+      writeErr: () => {},
+      writeOut: (text) => {
+        output += text;
+      },
+    });
 
   try {
     program.parse(argv, { from: 'user' });
   } catch (error) {
-    if (error instanceof CommanderError)
+    if (error instanceof CommanderError) {
+      if (error.code === 'commander.helpDisplayed' || error.code === 'commander.version') {
+        throw new CliInfoRequest(output);
+      }
       throw new CliUsageError(error.message.replace(/^error: /, ''));
+    }
     throw error;
   }
 

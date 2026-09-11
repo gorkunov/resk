@@ -7,7 +7,7 @@ import { DiffColumn } from './DiffColumn.jsx';
 import { FinishDialog } from './FinishDialog.jsx';
 
 export function Layout({ onFinished }: { onFinished: () => void }) {
-  const { state } = useStore();
+  const { state, syncError } = useStore();
   const [summaryComposerOpen, setSummaryComposerOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
   const [finishing, setFinishing] = useState(false);
@@ -35,6 +35,15 @@ export function Layout({ onFinished }: { onFinished: () => void }) {
           setFinishOpen(true);
         }}
       />
+      {syncError && (
+        <div
+          role="alert"
+          data-testid="sync-error"
+          className="bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200"
+        >
+          Comments could not be saved ({syncError}). They will be retried on your next change.
+        </div>
+      )}
       {finishError && (
         <div
           role="alert"

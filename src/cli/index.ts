@@ -3,7 +3,13 @@ import { readFile } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import open from 'open';
-import { buildProgram, CliUsageError, parseCliArgs, type CliOptions } from './options.js';
+import {
+  buildProgram,
+  CliInfoRequest,
+  CliUsageError,
+  parseCliArgs,
+  type CliOptions,
+} from './options.js';
 import { buildGitPlan } from './git-plan.js';
 import { collectDiff, findRepoRoot, GitError } from './git.js';
 import { anchorWarnings } from './warnings.js';
@@ -78,6 +84,10 @@ async function run(argv: string[]): Promise<void> {
   try {
     options = parseCliArgs(argv);
   } catch (error) {
+    if (error instanceof CliInfoRequest) {
+      process.stdout.write(error.text);
+      return;
+    }
     if (error instanceof CliUsageError) throw new ExitError(error.message, 2, true);
     throw error;
   }
