@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Comment, ReviewPayload } from '../shared/types.js';
 import { connectEvents, fetchComments, fetchReview } from './api.js';
 import { StoreProvider } from './state/store.jsx';
@@ -11,16 +11,27 @@ type LoadState =
 
 export function App() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
+  const [attempt, setAttempt] = useState(0);
 
-  const start = useCallback(() => {
-    setLoad({ status: 'loading' });
+  useEffect(() => {
+    let cancelled = false;
     Promise.all([fetchReview(), fetchComments()])
-      .then(([review, comments]) => setLoad({ status: 'ready', review, comments }))
-      .catch((error: Error) => setLoad({ status: 'error', message: error.message }));
-  }, []);
-
-  useEffect(start, [start]);
+      .then(([review, comments]) => {
+        if (!cancelled) setLoad({ status: 'ready', review, comments });
+      })
+      .catch((error: Error) => {
+        if (!cancelled) setLoad({ status: 'error', message: error.message });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
   useEffect(() => connectEvents(), []);
+
+  const retry = (): void => {
+    setLoad({ status: 'loading' });
+    setAttempt((n) => n + 1);
+  };
 
   if (load.status === 'loading') {
     return <div className="grid h-full place-items-center text-neutral-500">Loading review…</div>;
@@ -34,7 +45,7 @@ export function App() {
           </p>
           <button
             type="button"
-            onClick={start}
+            onClick={retry}
             className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm text-white dark:bg-neutral-100 dark:text-neutral-900"
           >
             Retry

@@ -1,6 +1,7 @@
 import { useStore } from '../state/store.jsx';
 import { TopBar } from './TopBar.jsx';
 import { SummaryPane } from './SummaryPane.jsx';
+import { DiffColumn } from './DiffColumn.jsx';
 
 export function Layout() {
   const { state } = useStore();
@@ -26,7 +27,9 @@ export function Layout() {
           <div
             className="min-w-0 flex-1 overflow-y-auto bg-neutral-50 dark:bg-neutral-900/40"
             data-testid="diff-column"
-          />
+          >
+            <DiffColumn />
+          </div>
         )}
       </div>
     </div>
