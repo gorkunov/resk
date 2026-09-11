@@ -3,7 +3,12 @@ import type { Theme } from '../state/reducer.js';
 
 const THEME_ICON: Record<Theme, string> = { system: '◐', light: '☀', dark: '☾' };
 
-export function TopBar({ onCommentSummary }: { onCommentSummary: () => void }) {
+interface TopBarProps {
+  onCommentSummary: () => void;
+  onFinish: () => void;
+}
+
+export function TopBar({ onCommentSummary, onFinish }: TopBarProps) {
   const { review, state, dispatch } = useStore();
 
   return (
@@ -38,6 +43,7 @@ export function TopBar({ onCommentSummary }: { onCommentSummary: () => void }) {
         <button
           type="button"
           data-testid="finish-button"
+          onClick={onFinish}
           className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
         >
           Finish review

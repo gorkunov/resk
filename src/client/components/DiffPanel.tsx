@@ -45,26 +45,24 @@ export function DiffPanel({ file, panel }: DiffPanelProps) {
 
   const comments = commentsForPath(state.comments, file.path);
   const fileComments = comments.filter((c) => c.target.kind === 'file');
-  const lineComments = comments.filter((c) => c.target.kind === 'lines');
 
   const lineAnnotations = useMemo<DiffLineAnnotation<Annotation>[]>(() => {
-    const groups = new Map<string, DiffLineAnnotation<Annotation>>();
-    for (const comment of lineComments) {
-      if (comment.target.kind !== 'lines') continue;
+    const groups = new Map<
+      string,
+      { side: AnnotationSide; lineNumber: number; comments: Comment[] }
+    >();
+    for (const comment of state.comments) {
+      if (comment.target.kind !== 'lines' || comment.target.path !== file.path) continue;
       const side = toSelectionSide(comment.target.side);
       const key = `${side}:${comment.target.end}`;
-      const existing = groups.get(key);
-      if (existing && existing.metadata.kind === 'comments') {
-        existing.metadata.comments.push(comment);
-      } else {
-        groups.set(key, {
-          side,
-          lineNumber: comment.target.end,
-          metadata: { kind: 'comments', comments: [comment] },
-        });
-      }
+      const group = groups.get(key) ?? { side, lineNumber: comment.target.end, comments: [] };
+      groups.set(key, { ...group, comments: [...group.comments, comment] });
     }
-    const list = [...groups.values()];
+    const list: DiffLineAnnotation<Annotation>[] = [...groups.values()].map((group) => ({
+      side: group.side,
+      lineNumber: group.lineNumber,
+      metadata: { kind: 'comments', comments: group.comments },
+    }));
     if (draft) {
       list.push({
         side: toSelectionSide(draft.side),
@@ -73,7 +71,7 @@ export function DiffPanel({ file, panel }: DiffPanelProps) {
       });
     }
     return list;
-  }, [lineComments, draft]);
+  }, [state.comments, file.path, draft]);
 
   const renderAnnotation = useCallback(
     (annotation: DiffLineAnnotation<Annotation>): ReactNode => {

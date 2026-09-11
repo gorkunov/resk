@@ -1,18 +1,48 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { postFinish } from '../api.js';
 import { useStore } from '../state/store.jsx';
 import { TopBar } from './TopBar.jsx';
 import { SummaryPane } from './SummaryPane.jsx';
 import { DiffColumn } from './DiffColumn.jsx';
+import { FinishDialog } from './FinishDialog.jsx';
 
-export function Layout() {
+export function Layout({ onFinished }: { onFinished: () => void }) {
   const { state } = useStore();
   const [summaryComposerOpen, setSummaryComposerOpen] = useState(false);
+  const [finishOpen, setFinishOpen] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | undefined>(undefined);
+
+  const closeFinish = useCallback(() => setFinishOpen(false), []);
+  const confirmFinish = useCallback(() => {
+    setFinishing(true);
+    postFinish()
+      .then(onFinished)
+      .catch((error: Error) => {
+        setFinishing(false);
+        setFinishError(error.message);
+      });
+  }, [onFinished]);
   const panelCount = state.panels.length;
   const hasPanels = panelCount > 0;
 
   return (
     <div className="flex h-full flex-col" data-testid="layout" data-panels={panelCount}>
-      <TopBar onCommentSummary={() => setSummaryComposerOpen(true)} />
+      <TopBar
+        onCommentSummary={() => setSummaryComposerOpen(true)}
+        onFinish={() => {
+          setFinishError(undefined);
+          setFinishOpen(true);
+        }}
+      />
+      {finishError && (
+        <div
+          role="alert"
+          className="bg-rose-50 px-4 py-2 text-sm text-rose-800 dark:bg-rose-950/50 dark:text-rose-300"
+        >
+          Could not finish the review: {finishError}
+        </div>
+      )}
       <div className="flex min-h-0 flex-1">
         <div
           className={
@@ -37,6 +67,9 @@ export function Layout() {
           </div>
         )}
       </div>
+      {finishOpen && (
+        <FinishDialog onCancel={closeFinish} onConfirm={confirmFinish} busy={finishing} />
+      )}
     </div>
   );
 }

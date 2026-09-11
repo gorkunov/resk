@@ -3,6 +3,7 @@ import type { Comment, ReviewPayload } from '../shared/types.js';
 import { connectEvents, fetchComments, fetchReview } from './api.js';
 import { StoreProvider } from './state/store.jsx';
 import { Layout } from './components/Layout.jsx';
+import { Finished } from './components/Finished.jsx';
 
 type LoadState =
   | { status: 'loading' }
@@ -12,6 +13,7 @@ type LoadState =
 export function App() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
+  const [finished, setFinished] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +28,10 @@ export function App() {
       cancelled = true;
     };
   }, [attempt]);
-  useEffect(() => connectEvents(), []);
+  useEffect(() => {
+    if (finished) return;
+    return connectEvents();
+  }, [finished]);
 
   const retry = (): void => {
     setLoad({ status: 'loading' });
@@ -54,9 +59,10 @@ export function App() {
       </div>
     );
   }
+  if (finished) return <Finished />;
   return (
     <StoreProvider review={load.review} initialComments={load.comments}>
-      <Layout />
+      <Layout onFinished={() => setFinished(true)} />
     </StoreProvider>
   );
 }
