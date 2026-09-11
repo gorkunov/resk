@@ -82,13 +82,13 @@ test.describe('diff panels', () => {
 
     await panelFor(page, 'README.md').getByTestId('panel-close').click();
     await expect(panels(page)).toHaveCount(1);
-    await expect(highlight(page, 'README')).toHaveAttribute('data-state', 'default');
+    await expect(highlight(page, 'README')).toHaveAttribute('data-state', 'reviewed');
 
     await panelFor(page, 'src/services/user.ts').getByTestId('panel-close').click();
     await expect(panels(page)).toHaveCount(0);
     await expect(page.getByTestId('diff-column')).toHaveCount(0);
     await expect(page.getByTestId('layout')).toHaveAttribute('data-panels', '0');
-    await expect(highlight(page, 'UserService')).toHaveAttribute('data-state', 'default');
+    await expect(highlight(page, 'UserService')).toHaveAttribute('data-state', 'reviewed');
   });
 
   test('file rows open panels and reflect the open state', async ({ page, resk }) => {

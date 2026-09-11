@@ -56,6 +56,7 @@ export function ChangedFiles() {
         {review.files.map((file) => {
           const isOpen = state.panels.some((p) => p.path === file.path);
           const hasComments = commentsForPath(state.comments, file.path).length > 0;
+          const reviewed = state.viewed.paths.includes(file.path);
           return (
             <li key={file.path}>
               <button
@@ -63,6 +64,7 @@ export function ChangedFiles() {
                 data-testid="file-row"
                 data-path={file.path}
                 data-open={isOpen ? 'true' : 'false'}
+                data-reviewed={reviewed ? 'true' : 'false'}
                 onClick={() => dispatch({ type: 'openPanel', path: file.path })}
                 className={`relative flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 ${
                   isOpen ? 'bg-sky-50 ring-1 ring-sky-200 dark:bg-sky-950/40 dark:ring-sky-900' : ''
@@ -73,6 +75,16 @@ export function ChangedFiles() {
                   {file.path}
                   {file.oldPath && <span className="ml-2 text-neutral-500">← {file.oldPath}</span>}
                 </span>
+                {reviewed && (
+                  <span
+                    data-testid="reviewed-check"
+                    title="Reviewed"
+                    aria-label="reviewed"
+                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400"
+                  >
+                    ✓
+                  </span>
+                )}
                 <Stats file={file} />
                 {hasComments && <CommentDot className="static ml-1 ring-0" />}
               </button>

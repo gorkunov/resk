@@ -25,7 +25,8 @@ node dist/cli/index.js --summary examples/summary.md --diff examples/changes.pat
 ## Things to try
 
 1. Read the summary and click a highlight such as **UserService.refreshSession()**. The panel opens
-   on the right with the linked lines outlined. Click **hardcodes `max: 10`** in the same file group
+   on the right with the linked lines outlined, and the highlight turns green to mark it as reviewed
+   (that survives a reload). Click **hardcodes `max: 10`** in the same file group
    to see the panel reused and scrolled.
 2. Open several files. Panels stay in diff order no matter what you clicked first. Close one with ×.
 3. Click a line number, or drag across several, and leave a comment. The highlight and the file row

@@ -13,6 +13,7 @@ import type { Comment, ReviewPayload } from '../../shared/types.js';
 import { putComments } from '../api.js';
 import { applyTheme, loadTheme, saveTheme } from '../theme.js';
 import { initialState, reduce, type Action, type AppState } from './reducer.js';
+import { loadViewed, saveViewed } from './viewed-storage.js';
 
 interface Store {
   review: ReviewPayload;
@@ -40,6 +41,7 @@ export function StoreProvider({ review, initialComments, children }: StoreProvid
     ...initialState,
     theme: loadTheme(),
     comments: initialComments,
+    viewed: loadViewed(review) ?? initialState.viewed,
   }));
   const [syncError, setSyncError] = useState<string | undefined>(undefined);
 
@@ -47,6 +49,10 @@ export function StoreProvider({ review, initialComments, children }: StoreProvid
     applyTheme(state.theme);
     saveTheme(state.theme);
   }, [state.theme]);
+
+  useEffect(() => {
+    saveViewed(review, state.viewed);
+  }, [review, state.viewed]);
 
   useEffect(() => {
     if (state.theme !== 'system' || typeof matchMedia !== 'function') return;

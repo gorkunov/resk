@@ -33,31 +33,43 @@ export function Highlight({ raw, children }: HighlightProps) {
   }
 
   const path = resolved.file.path;
-  const isOpen = state.panels.some((p) => p.path === path);
-  const hasComments = commentsForPath(state.comments, path).length > 0;
   const { anchor } = resolved;
+  const isWholeFile =
+    anchor.side === undefined || anchor.start === undefined || anchor.end === undefined;
+  const anchorKey = isWholeFile ? path : `${path}#${anchor.side}:${anchor.start}-${anchor.end}`;
+  const isOpen = state.panels.some((p) => p.path === path);
+  const reviewed = isWholeFile
+    ? state.viewed.paths.includes(path)
+    : state.viewed.anchors.includes(anchorKey);
+  const hasComments = commentsForPath(state.comments, path).length > 0;
 
   const open = (): void => {
-    if (anchor.side !== undefined && anchor.start !== undefined && anchor.end !== undefined) {
+    if (!isWholeFile) {
       dispatch({
         type: 'openPanel',
         path,
-        range: { side: anchor.side, start: anchor.start, end: anchor.end },
+        range: { side: anchor.side!, start: anchor.start!, end: anchor.end! },
+        anchorKey,
       });
     } else {
-      dispatch({ type: 'openPanel', path });
+      dispatch({ type: 'openPanel', path, anchorKey });
     }
   };
 
   const tone = isOpen
-    ? 'bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:text-neutral-950 dark:hover:bg-sky-400'
-    : 'bg-sky-50 text-sky-800 underline decoration-dotted decoration-sky-400 underline-offset-4 hover:bg-sky-100 dark:bg-sky-950/60 dark:text-sky-300 dark:hover:bg-sky-900';
+    ? reviewed
+      ? 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-neutral-950 dark:hover:bg-emerald-400'
+      : 'bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:text-neutral-950 dark:hover:bg-sky-400'
+    : reviewed
+      ? 'bg-emerald-50 text-emerald-800 underline decoration-dotted decoration-emerald-400 underline-offset-4 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900'
+      : 'bg-sky-50 text-sky-800 underline decoration-dotted decoration-sky-400 underline-offset-4 hover:bg-sky-100 dark:bg-sky-950/60 dark:text-sky-300 dark:hover:bg-sky-900';
 
   return (
     <button
       type="button"
       data-testid="highlight"
-      data-state={isOpen ? 'open' : 'default'}
+      data-state={isOpen ? 'open' : reviewed ? 'reviewed' : 'default'}
+      data-reviewed={reviewed ? 'true' : 'false'}
       data-path={path}
       data-has-comments={hasComments ? 'true' : undefined}
       aria-pressed={isOpen}

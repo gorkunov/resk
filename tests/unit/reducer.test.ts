@@ -116,3 +116,47 @@ describe('comments', () => {
     expect(state.comments.map((c) => c.id)).toEqual(['c2']);
   });
 });
+
+describe('viewed state', () => {
+  it('starts empty', () => {
+    expect(initialState.viewed).toEqual({ paths: [], anchors: [] });
+  });
+
+  it('records the path of every opened panel once', () => {
+    let state = open(initialState, 'b.ts');
+    state = open(state, 'b.ts');
+    state = open(state, 'a.ts', { side: 'new', start: 1, end: 2 });
+    expect(state.viewed.paths).toEqual(['b.ts', 'a.ts']);
+  });
+
+  it('records the anchor key when an open comes from a highlight', () => {
+    let state = reduce(
+      initialState,
+      {
+        type: 'openPanel',
+        path: 'a.ts',
+        range: { side: 'new', start: 1, end: 2 },
+        anchorKey: 'a.ts#new:1-2',
+      },
+      ORDER,
+    );
+    state = reduce(state, { type: 'openPanel', path: 'a.ts', anchorKey: 'a.ts#new:1-2' }, ORDER);
+    state = reduce(state, { type: 'openPanel', path: 'a.ts' }, ORDER);
+    expect(state.viewed.anchors).toEqual(['a.ts#new:1-2']);
+  });
+
+  it('keeps viewed state when panels close', () => {
+    let state = open(initialState, 'a.ts');
+    state = reduce(state, { type: 'closePanel', path: 'a.ts' }, ORDER);
+    expect(state.viewed.paths).toEqual(['a.ts']);
+  });
+
+  it('can be hydrated from a saved snapshot', () => {
+    const state = reduce(
+      initialState,
+      { type: 'hydrateViewed', viewed: { paths: ['a.ts'], anchors: ['a.ts#new:1-2'] } },
+      ORDER,
+    );
+    expect(state.viewed).toEqual({ paths: ['a.ts'], anchors: ['a.ts#new:1-2'] });
+  });
+});

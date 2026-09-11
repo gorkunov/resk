@@ -19,9 +19,16 @@ export interface PanelState {
   focus?: Focus;
 }
 
+/** What the reviewer has looked at: opened file paths and clicked highlight anchors. */
+export interface Viewed {
+  paths: string[];
+  anchors: string[];
+}
+
 export interface AppState {
   /** Open panels, always in diff order. */
   panels: PanelState[];
+  viewed: Viewed;
   /** Panel the diff column should scroll to; the nonce changes on every request. */
   scrollTarget?: { path: string; nonce: number };
   theme: Theme;
@@ -29,7 +36,8 @@ export interface AppState {
 }
 
 export type Action =
-  | { type: 'openPanel'; path: string; range?: Range }
+  | { type: 'openPanel'; path: string; range?: Range; anchorKey?: string }
+  | { type: 'hydrateViewed'; viewed: Viewed }
   | { type: 'closePanel'; path: string }
   | { type: 'setDiffStyle'; path: string; diffStyle: DiffStyle }
   | { type: 'cycleTheme' }
@@ -41,6 +49,7 @@ export type Action =
 
 export const initialState: AppState = {
   panels: [],
+  viewed: { paths: [], anchors: [] },
   theme: 'system',
   comments: [],
 };
@@ -54,6 +63,16 @@ export function nextTheme(theme: Theme): Theme {
 function rank(path: string, order: string[]): number {
   const index = order.indexOf(path);
   return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+}
+
+function addUnique(list: string[], value: string | undefined): string[] {
+  return value === undefined || list.includes(value) ? list : [...list, value];
+}
+
+function markViewed(viewed: Viewed, path: string, anchorKey: string | undefined): Viewed {
+  const paths = addUnique(viewed.paths, path);
+  const anchors = addUnique(viewed.anchors, anchorKey);
+  return paths === viewed.paths && anchors === viewed.anchors ? viewed : { paths, anchors };
 }
 
 function sortPanels(panels: PanelState[], order: string[]): PanelState[] {
@@ -77,8 +96,15 @@ export function reduce(state: AppState, action: Action, order: string[]): AppSta
         if (action.range) created.focus = { ...action.range, nonce };
         panels = sortPanels([...state.panels, created], order);
       }
-      return { ...state, panels, scrollTarget: { path: action.path, nonce } };
+      return {
+        ...state,
+        panels,
+        scrollTarget: { path: action.path, nonce },
+        viewed: markViewed(state.viewed, action.path, action.anchorKey),
+      };
     }
+    case 'hydrateViewed':
+      return { ...state, viewed: action.viewed };
     case 'closePanel': {
       if (!state.panels.some((p) => p.path === action.path)) return state;
       return { ...state, panels: state.panels.filter((p) => p.path !== action.path) };
