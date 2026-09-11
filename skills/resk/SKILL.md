@@ -38,6 +38,10 @@ review, and again after you have addressed the comments of an earlier round.
      and internal changes next; tests, docs, and cosmetic changes last. Use a heading per tier
      (`## Critical`, `## Notable`, `## Minor`, or whatever fits).
    - Explain _why_ and _what to look at_, not the diff itself. Never paste code blocks of the diff.
+   - Be concise. The reviewer reads the summary before the code, so it must be compact but clear:
+     one or two plain sentences per change, no filler, no praise of your own work, nothing the
+     diff shows better than words. A typical change fits on one screen; a large one takes a few
+     short sections. If a sentence does not help the reviewer decide where to look, cut it.
    - Link every module, function, or file you mention with a `diff:` anchor (see below). Prefer a
      line range for anything you explain in words; use whole-file anchors for files you only list.
    - Mention every changed file at least once. A bare inline code span that equals a changed path
@@ -73,8 +77,9 @@ summary; the page already shows it below.
   silently, and do not argue at length: one or two sentences, and offer the alternative.
 - Add an **Also changed** paragraph for anything beyond the comments (a refactor the fix needed, a
   new file, a behaviour change) with anchors. Nothing that changed may go unmentioned.
-- Keep it short: a few lines per comment. Line numbers in your earlier rounds may no longer match
-  the code; that is expected, and the reviewer follows your update, which must be accurate.
+- Keep it compact: one to three lines per comment, and the whole update shorter than the summary.
+  Line numbers in your earlier rounds may no longer match the code; that is expected, and the
+  reviewer follows your update, which must be accurate.
 
 ```markdown
 Three of four comments addressed; the purge job is declined for now.
