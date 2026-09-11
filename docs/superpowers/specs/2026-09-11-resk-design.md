@@ -74,7 +74,7 @@ Positional
   compare-with  <ref> | @                                       optional
 
 Options
-  --summary <path>      Markdown summary file. Required unless --summary is "-" (stdin).
+  --summary <path>      Markdown summary file. Required. "-" reads the summary from stdin.
   --diff <path|->       Read a unified diff from a file (or stdin with "-") instead of running git.
                         Positional target arguments are rejected when --diff is given.
   --title <text>        Review title for the top bar. Default: derived from target, e.g.
@@ -179,7 +179,7 @@ interface Hunk { oldStart: number; oldLines: number; newStart: number; newLines:
 
 interface FileChange {
   path: string;            // display path
-  oldPath?: string;        // set for renames (and equals path for plain modifications when needed)
+  oldPath?: string;        // set only for renames
   status: 'added' | 'deleted' | 'modified' | 'renamed';
   binary: boolean;
   additions: number;
