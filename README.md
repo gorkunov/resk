@@ -26,11 +26,18 @@ printed to the agent's stdout.
 
 ## Install
 
+The package is not on npm yet (the `resk` name there belongs to an unrelated project, so
+`npx resk` will not fetch this tool). Install from a checkout:
+
 ```bash
-npm install -g resk     # or: npx resk ...
+git clone <this repo> && cd resk
+npm install && npm run build
+npm install -g .          # links the `resk` command to this checkout
+resk --version
 ```
 
-Requires Node 20 or newer and git.
+Requires Node 20 or newer and git. Re-run `npm run build` after pulling changes; the global
+command is a symlink to the checkout, so no reinstall is needed.
 
 ## Try it
 
@@ -121,14 +128,26 @@ target. No comments prints `No review comments.`
 
 ## Claude Code skill
 
-The repository ships a skill that teaches an agent the workflow and the anchor format:
+The repository ships a skill that teaches an agent the workflow and the anchor format.
 
-```bash
-ln -s "$(pwd)/skills/resk" ~/.claude/skills/resk      # or copy the folder
-```
+1. Make the skill available to every project (or drop the folder into a project's `.claude/skills/`):
 
-After installing resk globally, the agent runs `resk --summary <file> <target>` after finishing a
-change and continues with the comments it gets back.
+   ```bash
+   ln -s "$(pwd)/skills/resk" ~/.claude/skills/resk
+   ```
+
+2. Let Claude run the command without a prompt each time, in `~/.claude/settings.json`:
+
+   ```json
+   { "permissions": { "allow": ["Bash(resk:*)"] } }
+   ```
+
+3. Reviews take longer than the Bash tool's default two-minute timeout. The skill tells the agent
+   to run `resk` in the background and wait for it to exit; if you prefer a foreground run, raise
+   `BASH_MAX_TIMEOUT_MS` in the `env` section of the same settings file.
+
+After that, "ask me for a review" or "use resk" in a Claude Code session starts the flow: the agent
+writes the summary, runs `resk`, and continues with the comments it gets back.
 
 ## Development
 

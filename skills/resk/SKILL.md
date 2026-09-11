@@ -99,5 +99,7 @@ Treat the quoted text as the part of your summary the user is reacting to.
 
 - Git targets need a git work tree. To review an arbitrary patch use `--diff <file>` (or `--diff -`
   for stdin) instead of a target.
-- The process blocks until the user finishes the review or closes the tab. Do not run it in the
-  background and poll; wait for it to exit and read its stdout.
+- The process blocks until the user finishes the review or closes the tab, which is usually
+  longer than a shell tool's default timeout. In Claude Code, run it with `run_in_background`
+  and wait for the completion notification, then read the command's output; do not poll or kill
+  it while the user is reviewing. If you cannot background it, pass the longest timeout allowed.
