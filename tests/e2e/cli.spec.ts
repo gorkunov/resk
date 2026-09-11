@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DEFAULT_ARGS, FIXTURES, launchResk } from './launch.js';
@@ -136,6 +137,41 @@ test.describe('resk process', () => {
       expect(resk.stderr()).toContain('resk: warning: the diff is empty');
     } finally {
       await resk.kill();
+    }
+  });
+
+  test('reviews a git working tree when given a target instead of --diff', async () => {
+    const repo = mkdtempSync(join(tmpdir(), 'resk-repo-'));
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
+    try {
+      git('init', '-q', '-b', 'main');
+      git('config', 'user.email', 't@example.com');
+      git('config', 'user.name', 't');
+      git('config', 'commit.gpgsign', 'false');
+      writeFileSync(join(repo, 'app.ts'), 'export const a = 1;\n');
+      git('add', '-A');
+      git('commit', '-q', '-m', 'init');
+      writeFileSync(join(repo, 'app.ts'), 'export const a = 2;\n');
+      writeFileSync(join(repo, 'new.ts'), 'export const b = 1;\n');
+      const summary = join(mkdtempSync(join(tmpdir(), 'resk-summary-')), 'summary.md');
+      writeFileSync(summary, 'Bumped [a](diff:app.ts#L1) and added `new.ts`.\n');
+
+      const resk = await launchResk(['--summary', summary, '--keep-alive'], { cwd: repo });
+      try {
+        const review = await (await fetch(`${resk.url}/api/review`)).json();
+        expect(review.title).toBe('Working tree vs HEAD');
+        expect(
+          review.files.map((f: { path: string; status: string }) => [f.path, f.status]),
+        ).toEqual([
+          ['app.ts', 'modified'],
+          ['new.ts', 'added'],
+        ]);
+        expect(resk.stderr()).not.toContain('warning');
+      } finally {
+        await resk.kill();
+      }
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
     }
   });
 
