@@ -86,7 +86,12 @@ export function parseUnifiedDiff(text: string): FileChange[] {
         draft!.deletions++;
       } else {
         const textBody = marker === ' ' ? body : line;
-        hunk.lines.push({ type: 'context', oldLine: oldLine++, newLine: newLine++, text: textBody });
+        hunk.lines.push({
+          type: 'context',
+          oldLine: oldLine++,
+          newLine: newLine++,
+          text: textBody,
+        });
         oldRemaining--;
         newRemaining--;
       }

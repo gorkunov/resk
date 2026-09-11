@@ -32,7 +32,9 @@ describe('parseUnifiedDiff', () => {
   it('records the old path only for renames', () => {
     const renamed = files.find((f) => f.path === 'src/utils/clock.ts');
     expect(renamed?.oldPath).toBe('src/utils/time.ts');
-    expect(files.filter((f) => f.path !== 'src/utils/clock.ts').every((f) => f.oldPath === undefined)).toBe(true);
+    expect(
+      files.filter((f) => f.path !== 'src/utils/clock.ts').every((f) => f.oldPath === undefined),
+    ).toBe(true);
   });
 
   it('marks binary files and gives them zero stats and no hunks', () => {
@@ -65,8 +67,16 @@ describe('parseUnifiedDiff', () => {
   it('numbers lines on both sides and strips the marker from the text', () => {
     const user = files.find((f) => f.path === 'src/services/user.ts')!;
     const lines = user.hunks[0]!.lines;
-    expect(lines[0]).toEqual({ type: 'del', oldLine: 1, text: "import { Token } from '../auth/token';" });
-    expect(lines[1]).toEqual({ type: 'add', newLine: 1, text: "import { RefreshToken } from '../auth/refresh';" });
+    expect(lines[0]).toEqual({
+      type: 'del',
+      oldLine: 1,
+      text: "import { Token } from '../auth/token';",
+    });
+    expect(lines[1]).toEqual({
+      type: 'add',
+      newLine: 1,
+      text: "import { RefreshToken } from '../auth/refresh';",
+    });
     expect(lines[2]).toEqual({ type: 'context', oldLine: 2, newLine: 2, text: '' });
     expect(lines[20]).toEqual({ type: 'add', newLine: 18, text: '    const timeout = 3000;' });
     expect(lines[24]).toEqual({ type: 'context', oldLine: 17, newLine: 22, text: '' });
@@ -80,8 +90,12 @@ describe('parseUnifiedDiff', () => {
 
   it('slices each file its own raw patch text', () => {
     expect(files[0]!.patch.startsWith('diff --git a/README.md b/README.md\n')).toBe(true);
-    expect(files[0]!.patch.endsWith('+A demo project with server-side token refresh.\n')).toBe(true);
-    expect(files[5]!.patch.startsWith('diff --git a/src/utils/time.ts b/src/utils/clock.ts\n')).toBe(true);
+    expect(files[0]!.patch.endsWith('+A demo project with server-side token refresh.\n')).toBe(
+      true,
+    );
+    expect(
+      files[5]!.patch.startsWith('diff --git a/src/utils/time.ts b/src/utils/clock.ts\n'),
+    ).toBe(true);
     expect(files.map((f) => f.patch).join('')).toBe(fixture);
   });
 
@@ -91,7 +105,15 @@ describe('parseUnifiedDiff', () => {
   });
 
   it('defaults hunk line counts to 1 when omitted', () => {
-    const patch = ['diff --git a/x.txt b/x.txt', '--- a/x.txt', '+++ b/x.txt', '@@ -1 +1 @@', '-a', '+b', ''].join('\n');
+    const patch = [
+      'diff --git a/x.txt b/x.txt',
+      '--- a/x.txt',
+      '+++ b/x.txt',
+      '@@ -1 +1 @@',
+      '-a',
+      '+b',
+      '',
+    ].join('\n');
     const [file] = parseUnifiedDiff(patch);
     expect(file!.hunks[0]).toMatchObject({ oldStart: 1, oldLines: 1, newStart: 1, newLines: 1 });
     expect(file!.hunks[0]!.lines).toEqual([
@@ -146,7 +168,9 @@ describe('parseUnifiedDiff', () => {
   });
 
   it('reports a mode-only change as modified with no hunks', () => {
-    const patch = ['diff --git a/run.sh b/run.sh', 'old mode 100644', 'new mode 100755', ''].join('\n');
+    const patch = ['diff --git a/run.sh b/run.sh', 'old mode 100644', 'new mode 100755', ''].join(
+      '\n',
+    );
     expect(parseUnifiedDiff(patch)[0]).toMatchObject({
       path: 'run.sh',
       status: 'modified',
@@ -162,7 +186,9 @@ describe('findLine', () => {
 
   it('finds a line by side and number across hunks', () => {
     expect(findLine(user, 'new', 28)?.text).toBe('    await this.db.sessions.revokeAll(id);');
-    expect(findLine(user, 'old', 10)?.text).toBe('  async refresh(token: Token): Promise<Session> {');
+    expect(findLine(user, 'old', 10)?.text).toBe(
+      '  async refresh(token: Token): Promise<Session> {',
+    );
   });
 
   it('returns undefined for lines outside every hunk', () => {

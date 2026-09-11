@@ -43,20 +43,45 @@ describe('parseAnchorUrl', () => {
   });
 
   it('parses a single new-side line', () => {
-    expect(parseAnchorUrl('diff:src/a.ts#L40')).toEqual({ path: 'src/a.ts', side: 'new', start: 40, end: 40 });
+    expect(parseAnchorUrl('diff:src/a.ts#L40')).toEqual({
+      path: 'src/a.ts',
+      side: 'new',
+      start: 40,
+      end: 40,
+    });
   });
 
   it('parses a new-side range', () => {
-    expect(parseAnchorUrl('diff:src/a.ts#L40-L58')).toEqual({ path: 'src/a.ts', side: 'new', start: 40, end: 58 });
+    expect(parseAnchorUrl('diff:src/a.ts#L40-L58')).toEqual({
+      path: 'src/a.ts',
+      side: 'new',
+      start: 40,
+      end: 58,
+    });
   });
 
   it('parses old-side anchors', () => {
-    expect(parseAnchorUrl('diff:src/a.ts#old:L12')).toEqual({ path: 'src/a.ts', side: 'old', start: 12, end: 12 });
-    expect(parseAnchorUrl('diff:src/a.ts#old:L12-L20')).toEqual({ path: 'src/a.ts', side: 'old', start: 12, end: 20 });
+    expect(parseAnchorUrl('diff:src/a.ts#old:L12')).toEqual({
+      path: 'src/a.ts',
+      side: 'old',
+      start: 12,
+      end: 12,
+    });
+    expect(parseAnchorUrl('diff:src/a.ts#old:L12-L20')).toEqual({
+      path: 'src/a.ts',
+      side: 'old',
+      start: 12,
+      end: 20,
+    });
   });
 
   it('swaps a reversed range', () => {
-    expect(parseAnchorUrl('diff:src/a.ts#L58-L40')).toEqual({ path: 'src/a.ts', side: 'new', start: 40, end: 58 });
+    expect(parseAnchorUrl('diff:src/a.ts#L58-L40')).toEqual({
+      path: 'src/a.ts',
+      side: 'new',
+      start: 40,
+      end: 58,
+    });
   });
 
   it('URL-decodes the path', () => {
@@ -64,7 +89,16 @@ describe('parseAnchorUrl', () => {
   });
 
   it('returns undefined for invalid fragments and non-diff URLs', () => {
-    for (const url of ['diff:a.ts#L', 'diff:a.ts#foo', 'diff:a.ts#L1-', 'diff:a.ts#new:L1', 'diff:a.ts#L0', 'diff:', 'diff:#L1', 'https://x']) {
+    for (const url of [
+      'diff:a.ts#L',
+      'diff:a.ts#foo',
+      'diff:a.ts#L1-',
+      'diff:a.ts#new:L1',
+      'diff:a.ts#L0',
+      'diff:',
+      'diff:#L1',
+      'https://x',
+    ]) {
       expect(parseAnchorUrl(url), url).toBeUndefined();
     }
   });
@@ -100,11 +134,18 @@ describe('resolveAnchor', () => {
   it('reports ambiguous suffixes with the candidates', () => {
     const many = [fakeFile('a/index.ts'), fakeFile('b/index.ts'), fakeFile('c/other.ts')];
     const r = resolveAnchor('diff:index.ts', many);
-    expect(r).toEqual({ status: 'ambiguous', raw: 'diff:index.ts', candidates: ['a/index.ts', 'b/index.ts'] });
+    expect(r).toEqual({
+      status: 'ambiguous',
+      raw: 'diff:index.ts',
+      candidates: ['a/index.ts', 'b/index.ts'],
+    });
   });
 
   it('reports unresolved and invalid anchors', () => {
-    expect(resolveAnchor('diff:nope.ts', files)).toEqual({ status: 'unresolved', raw: 'diff:nope.ts' });
+    expect(resolveAnchor('diff:nope.ts', files)).toEqual({
+      status: 'unresolved',
+      raw: 'diff:nope.ts',
+    });
     expect(resolveAnchor('diff:src/services/user.ts#bad', files)).toEqual({
       status: 'invalid',
       raw: 'diff:src/services/user.ts#bad',
@@ -116,12 +157,16 @@ describe('rangeWarning', () => {
   it('is undefined for whole-file anchors and ranges that start inside a hunk', () => {
     expect(rangeWarning(resolveAnchor('diff:src/services/user.ts', files))).toBeUndefined();
     expect(rangeWarning(resolveAnchor('diff:src/services/user.ts#L18', files))).toBeUndefined();
-    expect(rangeWarning(resolveAnchor('diff:src/services/user.ts#old:L10-L14', files))).toBeUndefined();
+    expect(
+      rangeWarning(resolveAnchor('diff:src/services/user.ts#old:L10-L14', files)),
+    ).toBeUndefined();
     expect(rangeWarning(resolveAnchor('diff:src/services/user.ts#L22-L25', files))).toBeUndefined();
   });
 
   it('warns when the start line is not part of the diff on that side', () => {
-    expect(rangeWarning(resolveAnchor('diff:src/services/user.ts#L23', files))).toMatch(/L23.*not (in|part of) the diff/);
+    expect(rangeWarning(resolveAnchor('diff:src/services/user.ts#L23', files))).toMatch(
+      /L23.*not (in|part of) the diff/,
+    );
     expect(rangeWarning(resolveAnchor('diff:src/routes/auth.ts#old:L1', files))).toMatch(/old/);
     expect(rangeWarning(resolveAnchor('diff:assets/logo.png#L1', files))).toMatch(/binary/i);
   });
@@ -133,11 +178,19 @@ describe('rangeWarning', () => {
 
 describe('describeAnchorProblem', () => {
   it('explains each failure status', () => {
-    expect(describeAnchorProblem(resolveAnchor('diff:nope.ts', files))).toBe('does not match any changed file');
-    expect(describeAnchorProblem(resolveAnchor('diff:a.ts#zzz', files))).toBe('is not a valid diff: anchor');
+    expect(describeAnchorProblem(resolveAnchor('diff:nope.ts', files))).toBe(
+      'does not match any changed file',
+    );
+    expect(describeAnchorProblem(resolveAnchor('diff:a.ts#zzz', files))).toBe(
+      'is not a valid diff: anchor',
+    );
     const many = [fakeFile('a/index.ts'), fakeFile('b/index.ts')];
-    expect(describeAnchorProblem(resolveAnchor('diff:index.ts', many))).toBe('is ambiguous: a/index.ts, b/index.ts');
-    expect(describeAnchorProblem(resolveAnchor('diff:src/services/user.ts', files))).toBeUndefined();
+    expect(describeAnchorProblem(resolveAnchor('diff:index.ts', many))).toBe(
+      'is ambiguous: a/index.ts, b/index.ts',
+    );
+    expect(
+      describeAnchorProblem(resolveAnchor('diff:src/services/user.ts', files)),
+    ).toBeUndefined();
   });
 });
 
