@@ -6,7 +6,7 @@ file, a rename, a SQL migration, tests, docs, and a binary.
 
 - `summary.md`: the summary an agent would write, ordered from critical to minor, with `diff:` anchors.
 - `changes.patch`: the matching unified diff (generated with `git diff -M`).
-- `update-1.md`: the update an agent would write for a second round, after addressing comments.
+- `round-2.md`: what an agent would write for a second round, after addressing the comments.
 
 ## Run it
 
@@ -45,11 +45,11 @@ Reviews usually take more than one round. The session variant of the example kee
 together under the key `example-service`:
 
 ```bash
-npm run example:session    # round 1: the summary above; click Finish review when done
-npm run example:update     # round 2: the same page with "Update 1" appended and opened
+npm run example:session    # the initial round: the summary above; click Finish review when done
+npm run example:round-2    # round 2: what changed, on top of the initial round
 ```
 
-The second run shows the original summary first, then **Update 1** with what the agent changed in
-response to the comments, and opens the page at the update. Highlights in both parts point into
-the current diff. Finished rounds live in `~/.resk/sessions/example-service.json`; delete that file
+The second run shows **Round 2** first, with what the agent changed in response to the comments,
+and the **Initial Round** below it with the date it was reviewed. Highlights in both parts point
+into the current diff. Finished rounds live in `~/.resk/sessions/example-service.json`; delete that file
 to start the demo over. A run that ends without **Finish review** is not recorded.

@@ -94,6 +94,7 @@ async function openSession(key: string): Promise<{ store: SessionStore; info: Se
   const info: SessionInfo = {
     key,
     round: stored.rounds.length + 1,
+    startedAt: new Date().toISOString(),
     previous: stored.rounds.map((round) => ({
       number: round.number,
       summary: round.summary,

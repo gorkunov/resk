@@ -10,12 +10,13 @@ describe('viewedStorageKey', () => {
   });
 
   it('differs between rounds of the same session', () => {
-    const round1 = { ...base, session: { key: 'demo', round: 1, previous: [] } };
+    const round1 = { ...base, session: { key: 'demo', round: 1, startedAt: 't', previous: [] } };
     const round2 = {
       ...base,
       session: {
         key: 'demo',
         round: 2,
+        startedAt: 't',
         previous: [{ number: 1, summary: '# S', finishedAt: 't', commentCount: 0 }],
       },
     };

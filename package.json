@@ -31,7 +31,7 @@
     "prepublishOnly": "npm run build",
     "example": "npm run build && node dist/cli/index.js --summary examples/summary.md --diff examples/changes.patch --title \"example-service: server-side session refresh\"",
     "example:session": "npm run build && node dist/cli/index.js --summary examples/summary.md --diff examples/changes.patch --session example-service",
-    "example:update": "npm run build && node dist/cli/index.js --summary examples/update-1.md --diff examples/changes.patch --session example-service"
+    "example:round-2": "npm run build && node dist/cli/index.js --summary examples/round-2.md --diff examples/changes.patch --session example-service"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.3.0",

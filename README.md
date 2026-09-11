@@ -61,7 +61,7 @@ resk --summary <file.md> [target] [compare-with] [options]
   --summary <path>   Markdown summary file ("-" reads stdin). Required.
   --diff <path|->    review a unified diff from a file or stdin instead of running git
   --title <text>     review title shown in the top bar
-  --session <key>    review session key; later runs with the same key appear as updates
+  --session <key>    review session key; later runs with the same key stack up as rounds
   --no-untracked     exclude untracked files (only affects "." and "working")
   --context <n>      context lines per hunk passed to git
   --port <n>         preferred port (default 4989); falls back to the next free port
@@ -79,7 +79,7 @@ resk --summary summary.md @ main         # current HEAD vs main
 resk --summary summary.md staged         # staged changes
 resk --summary summary.md 6f4a9b7        # one commit (root commits work too)
 git diff main | resk --summary summary.md --diff -
-resk --summary update.md --session feat-refresh @ main   # second round of a session (see below)
+resk --summary round-2.md --session feat-refresh @ main  # second round of a session (see below)
 ```
 
 resk prints its URL to **stderr** and opens the browser. **stdout is reserved for the review
@@ -132,14 +132,15 @@ target. No comments prints `No review comments.`
 
 A review rarely ends after one round. Pass `--session <key>` with a key of your choice, and after
 addressing the comments run resk again with the same key and a summary of what changed. The
-reviewer sees the original summary, every earlier update, and the new one as **Update 1**,
-**Update 2**, ... on a single page that opens at the latest update. Highlights in every round point
-into the current diff, so a stale line range shows as a broken highlight rather than the wrong code.
+reviewer gets one page with the newest round on top (**Round 2**, **Round 3**, ...) and the
+**Initial Round** at the bottom, each with a title and the date it was reviewed. Highlights in
+every round point into the current diff, so a stale line range shows as a broken highlight rather
+than the wrong code.
 
 ```bash
-resk --summary summary.md --session feat-refresh @ main    # round 1
+resk --summary summary.md --session feat-refresh @ main    # the initial round
 # ...address the comments...
-resk --summary update-1.md --session feat-refresh @ main   # round 2: shown as "Update 1"
+resk --summary round-2.md --session feat-refresh @ main    # shown on top as "Round 2"
 ```
 
 Finished rounds (summary and comments) are stored in `~/.resk/sessions/<key>.json`; `RESK_HOME`
@@ -168,7 +169,8 @@ The repository ships a skill that teaches an agent the workflow and the anchor f
 
 After that, "ask me for a review" or "use resk" in a Claude Code session starts the flow: the agent
 picks a session key, writes the summary, runs `resk`, and continues with the comments it gets back.
-Follow-up reviews of the same work reuse the key, so each shows up as an update to the summary.
+Follow-up reviews of the same work reuse the key, so each shows up as a new round on top of the
+earlier ones.
 
 ## Development
 

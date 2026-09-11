@@ -1,88 +1,71 @@
-import { useEffect, useRef } from 'react';
 import type { SessionRound } from '../../shared/types.js';
+import { roundDate, roundLabel } from '../round-label.js';
 import { useStore } from '../state/store.jsx';
 import { Markdown } from './Markdown.jsx';
 
-/** Fixed format so the header text, which selection offsets index, is stable across reloads. */
-function reviewedOn(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-interface UpdateSectionProps {
-  number: number;
+interface RoundSectionProps {
+  round: number;
   summary: string;
+  meta: string;
   current: boolean;
-  finished?: Pick<SessionRound, 'finishedAt' | 'commentCount'>;
+  first: boolean;
 }
 
-function UpdateSection({ number, summary, current, finished }: UpdateSectionProps) {
-  const ref = useRef<HTMLElement>(null);
-
-  // A follow-up round opens on its own update; the earlier rounds stay above for reference.
-  useEffect(() => {
-    if (current) ref.current?.scrollIntoView({ block: 'start' });
-  }, [current]);
-
-  const note = finished
-    ? `reviewed ${reviewedOn(finished.finishedAt)} · ${finished.commentCount} comment${
-        finished.commentCount === 1 ? '' : 's'
-      }`
-    : 'this round';
+function RoundSection({ round, summary, meta, current, first }: RoundSectionProps) {
   return (
     <section
-      ref={ref}
-      data-testid="update-section"
-      data-update={number}
+      data-testid="round-section"
+      data-round={round}
       data-current={current ? 'true' : undefined}
-      className="mt-10 scroll-mt-4"
+      className={first ? '' : 'mt-12 border-t border-neutral-200 pt-10 dark:border-neutral-800'}
     >
-      <div className="mb-4 flex items-center gap-3">
-        <span
-          data-testid="update-label"
-          className={
-            current
-              ? 'rounded-full bg-sky-600 px-2.5 py-0.5 text-xs font-semibold text-white'
-              : 'rounded-full bg-neutral-200 px-2.5 py-0.5 text-xs font-semibold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
-          }
-        >
-          Update {number}
-        </span>
-        <span className="text-xs text-neutral-500 dark:text-neutral-400">{note}</span>
-        <hr className="flex-1 border-neutral-200 dark:border-neutral-800" />
-      </div>
+      <header className="mb-6">
+        <h1 data-testid="round-title" className="text-2xl font-semibold tracking-tight">
+          {roundLabel(round)}
+        </h1>
+        <p data-testid="round-meta" className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          {meta}
+        </p>
+      </header>
       <Markdown source={summary} />
     </section>
   );
 }
 
+function reviewedMeta(round: SessionRound): string {
+  const comments = `${round.commentCount} comment${round.commentCount === 1 ? '' : 's'}`;
+  return `Reviewed ${roundDate(round.finishedAt)} · ${comments}`;
+}
+
 /**
- * The summary text of this review: in a session's follow-up rounds the original summary comes
- * first, then every finished update, then the current update.
+ * The summary text of this review. In a session's follow-up rounds the current round comes
+ * first, then the finished rounds newest first, down to the initial round.
  */
 export function SessionRounds() {
   const { review } = useStore();
-  const previous = review.session?.previous ?? [];
-  if (previous.length === 0) return <Markdown source={review.summary} />;
+  const session = review.session;
+  if (!session || session.previous.length === 0) return <Markdown source={review.summary} />;
 
-  const [original, ...updates] = previous as [SessionRound, ...SessionRound[]];
+  const finished = [...session.previous].sort((a, b) => b.number - a.number);
   return (
     <>
-      <Markdown source={original.summary} />
-      {updates.map((round) => (
-        <UpdateSection
+      <RoundSection
+        round={session.round}
+        summary={review.summary}
+        meta={`Current round · started ${roundDate(session.startedAt)}`}
+        current
+        first
+      />
+      {finished.map((round) => (
+        <RoundSection
           key={round.number}
-          number={round.number - 1}
+          round={round.number}
           summary={round.summary}
+          meta={reviewedMeta(round)}
           current={false}
-          finished={round}
+          first={false}
         />
       ))}
-      <UpdateSection number={previous.length} summary={review.summary} current />
     </>
   );
 }

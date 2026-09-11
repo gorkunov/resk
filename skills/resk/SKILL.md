@@ -10,8 +10,8 @@ into the diff through highlights you place in the text. The user comments on lin
 summary; when they finish, the comments are printed to your stdout.
 
 Reviews take rounds. resk keeps the rounds of one piece of work together in a **session**: the
-first run shows your summary, every later run with the same key shows your update as
-"Update 1", "Update 2", ... underneath it, and the page opens at the newest update.
+first run shows your summary as the **Initial Round**; every later run with the same key adds
+**Round 2**, **Round 3**, ... on top of it, newest first, with the date each round was reviewed.
 
 ## When to use
 
@@ -63,8 +63,8 @@ review, and again after you have addressed the comments of an earlier round.
 
 ## Writing an update (round 2 and later)
 
-The update is a delta the reviewer reads next to your original summary. Do not rewrite or repeat
-the summary; the page already shows it.
+The update is a delta the reviewer reads above your earlier rounds. Do not rewrite or repeat the
+summary; the page already shows it below.
 
 - Open with one sentence of status: how many comments were addressed, how many declined.
 - One bullet per reviewer comment, in the order the comments came. Quote or paraphrase the comment
@@ -143,8 +143,9 @@ Renamed helpers in [utils/time.ts](diff:src/utils/time.ts); test updates in `tes
 ```
 
 Summary comments are anchored to a text selection and written as `On "<selected text>": <comment>`.
-Treat the quoted text as the part of your summary or update the user is reacting to. Only the
-comments of the current round are printed; earlier rounds are in the session file if you need them.
+Treat the quoted text as the part of your summary or update the user is reacting to. Selections
+can land in any round on the page, including earlier ones. Only the comments of the current round
+are printed; earlier rounds are in the session file if you need them.
 
 ## Constraints
 

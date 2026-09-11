@@ -1,12 +1,8 @@
 import { useStore } from '../state/store.jsx';
 import type { Theme } from '../state/reducer.js';
+import { roundLabel } from '../round-label.js';
 
 const THEME_ICON: Record<Theme, string> = { system: '◐', light: '☀', dark: '☾' };
-
-/** Round 1 is the summary itself; every later round is an update to it. */
-export function roundLabel(round: number): string {
-  return round === 1 ? 'Round 1' : `Update ${round - 1}`;
-}
 
 interface TopBarProps {
   onFinish: () => void;

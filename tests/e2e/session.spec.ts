@@ -66,8 +66,8 @@ const comment = {
   updatedAt: '2026-09-11T10:00:00.000Z',
 };
 
-function updates(page: Page) {
-  return page.getByTestId('update-section');
+function rounds(page: Page) {
+  return page.getByTestId('round-section');
 }
 
 test.describe('review sessions: process', () => {
@@ -75,7 +75,8 @@ test.describe('review sessions: process', () => {
     const resk = await launch('summary.md');
     const review = await (await fetch(`${resk.url}/api/review`)).json();
     expect(review.title).toBe(KEY);
-    expect(review.session).toEqual({ key: KEY, round: 1, previous: [] });
+    expect(review.session).toMatchObject({ key: KEY, round: 1, previous: [] });
+    expect(Date.parse(review.session.startedAt)).not.toBeNaN();
     expect(resk.stderr()).toContain(`resk: session "${KEY}": round 1`);
 
     await fetch(`${resk.url}/api/comments`, {
@@ -143,79 +144,100 @@ test.describe('review sessions: process', () => {
 });
 
 test.describe('review sessions: page', () => {
-  test('round 1 looks like a plain review with a round badge', async ({ page }) => {
+  test('the initial round looks like a plain review with a round badge', async ({ page }) => {
     const resk = await launch('summary.md');
     await page.goto(resk.url);
-    await expect(page.getByTestId('session-round')).toHaveText('Round 1');
-    await expect(updates(page)).toHaveCount(0);
+    await expect(page.getByTestId('session-round')).toHaveText('Initial Round');
+    await expect(rounds(page)).toHaveCount(0);
     await expect(page).toHaveTitle(`${KEY} - Resk`);
   });
 
-  test('a follow-up shows the original summary, then the update as the current section', async ({
+  test('a follow-up puts the current round on top and the initial round below it', async ({
     page,
   }) => {
     seed([{ summary: LONG_ROUND_ONE, comments: [comment] }]);
     const resk = await launch('update.md');
     await page.goto(resk.url);
 
-    await expect(page.getByTestId('session-round')).toHaveText('Update 1');
-    const markdown = page.getByTestId('summary-markdown');
-    await expect(markdown).toContainText('Token refresh moved from the client');
-    await expect(updates(page)).toHaveCount(1);
-    const update = updates(page).first();
-    await expect(update).toHaveAttribute('data-current', 'true');
-    await expect(update.getByTestId('update-label')).toHaveText('Update 1');
-    await expect(update).toContainText('Addressed the round 1 comments.');
+    await expect(page.getByTestId('session-round')).toHaveText('Round 2');
+    await expect(rounds(page)).toHaveCount(2);
 
-    // The original summary sits above the update in reading order.
-    const original = markdown.getByRole('heading', { name: 'Critical' });
-    const originalBox = (await original.boundingBox())!;
-    const updateBox = (await update.boundingBox())!;
-    expect(originalBox.y).toBeLessThan(updateBox.y);
+    const current = rounds(page).nth(0);
+    await expect(current).toHaveAttribute('data-current', 'true');
+    await expect(current.getByRole('heading', { name: 'Round 2' })).toBeVisible();
+    await expect(current.getByTestId('round-meta')).toContainText('Current round');
+    await expect(current).toContainText('Addressed the round 1 comments.');
+    await expect(current.getByTestId('round-title')).toBeInViewport();
+
+    const initial = rounds(page).nth(1);
+    await expect(initial).not.toHaveAttribute('data-current', 'true');
+    await expect(initial.getByRole('heading', { name: 'Initial Round' })).toBeVisible();
+    await expect(initial.getByTestId('round-meta')).toContainText('Reviewed');
+    await expect(initial.getByTestId('round-meta')).toContainText('1 comment');
+    await expect(initial).toContainText('Token refresh moved from the client');
+
+    const currentBox = (await current.boundingBox())!;
+    const initialBox = (await initial.boundingBox())!;
+    expect(currentBox.y).toBeLessThan(initialBox.y);
   });
 
-  test('the page opens scrolled to the current update', async ({ page }) => {
-    seed([{ summary: LONG_ROUND_ONE }]);
-    const resk = await launch('update.md');
-    await page.goto(resk.url);
-    const update = updates(page).first();
-    await expect(update.getByTestId('update-label')).toBeInViewport();
-    await expect(
-      page.getByTestId('summary-markdown').getByRole('heading', { name: 'Critical' }),
-    ).not.toBeInViewport();
-  });
-
-  test('earlier updates are listed before the current one with their review date', async ({
+  test('the round title is a plain heading with the date on a second line, not a badge', async ({
     page,
   }) => {
-    seed([{ summary: ROUND_ONE, comments: [comment] }, { summary: 'First update text.' }]);
-    const resk = await launch('update.md');
-    await page.goto(resk.url);
-    await expect(page.getByTestId('session-round')).toHaveText('Update 2');
-    await expect(updates(page)).toHaveCount(2);
-    const first = updates(page).nth(0);
-    await expect(first.getByTestId('update-label')).toHaveText('Update 1');
-    await expect(first).not.toHaveAttribute('data-current', 'true');
-    await expect(first).toContainText('First update text.');
-    await expect(first).toContainText('reviewed');
-    const second = updates(page).nth(1);
-    await expect(second.getByTestId('update-label')).toHaveText('Update 2');
-    await expect(second).toHaveAttribute('data-current', 'true');
-    await expect(second).toContainText('Addressed the round 1 comments.');
-  });
-
-  test('highlights inside the update open panels against the current diff', async ({ page }) => {
     seed([{ summary: ROUND_ONE }]);
     const resk = await launch('update.md');
     await page.goto(resk.url);
-    const update = updates(page).first();
-    await update.getByTestId('highlight').filter({ hasText: 'POST /auth/refresh' }).click();
+    const title = rounds(page).nth(1).getByTestId('round-title');
+    const meta = rounds(page).nth(1).getByTestId('round-meta');
+    await expect(title).toHaveText('Initial Round');
+    await expect(meta).toContainText(/Reviewed .*\d/);
+    const titleBox = (await title.boundingBox())!;
+    const metaBox = (await meta.boundingBox())!;
+    expect(metaBox.y).toBeGreaterThanOrEqual(titleBox.y + titleBox.height - 1);
+    expect(Math.abs(metaBox.x - titleBox.x)).toBeLessThan(2);
+    const titleStyle = await title.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { fontSize: parseFloat(style.fontSize), radius: style.borderRadius };
+    });
+    expect(titleStyle.fontSize).toBeGreaterThanOrEqual(20);
+    expect(titleStyle.radius).toBe('0px');
+  });
+
+  test('rounds are listed newest first down to the initial round', async ({ page }) => {
+    seed([{ summary: ROUND_ONE, comments: [comment] }, { summary: 'Second round text.' }]);
+    const resk = await launch('update.md');
+    await page.goto(resk.url);
+    await expect(page.getByTestId('session-round')).toHaveText('Round 3');
+    await expect(rounds(page)).toHaveCount(3);
+    await expect(rounds(page).locator('[data-testid="round-title"]')).toHaveText([
+      'Round 3',
+      'Round 2',
+      'Initial Round',
+    ]);
+    await expect(rounds(page).nth(0)).toHaveAttribute('data-current', 'true');
+    await expect(rounds(page).nth(0)).toContainText('Addressed the round 1 comments.');
+    await expect(rounds(page).nth(1)).not.toHaveAttribute('data-current', 'true');
+    await expect(rounds(page).nth(1)).toContainText('Second round text.');
+    await expect(rounds(page).nth(1).getByTestId('round-meta')).toContainText('0 comments');
+    await expect(rounds(page).nth(2)).toContainText('Token refresh moved');
+  });
+
+  test('highlights inside the current round open panels against the current diff', async ({
+    page,
+  }) => {
+    seed([{ summary: ROUND_ONE }]);
+    const resk = await launch('update.md');
+    await page.goto(resk.url);
+    const current = rounds(page).first();
+    await current.getByTestId('highlight').filter({ hasText: 'POST /auth/refresh' }).click();
     await expect(page.getByTestId('layout')).toHaveAttribute('data-panels', '1');
     const panel = page.locator('[data-testid="panel"][data-path="src/routes/auth.ts"]');
     await expect(panel).toHaveAttribute('data-focus', 'new:6-9');
   });
 
-  test('a selection comment inside the update is reported with its quote', async ({ page }) => {
+  test('a selection comment inside the current round is reported with its quote', async ({
+    page,
+  }) => {
     seed([{ summary: ROUND_ONE }]);
     const resk = await launch('update.md');
     await page.goto(resk.url);

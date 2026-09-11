@@ -70,6 +70,8 @@ export interface SessionInfo {
   key: string;
   /** 1-based number of the round being reviewed now; earlier rounds are in `previous`. */
   round: number;
+  /** When this run started; shown as the current round's date and stable across reloads. */
+  startedAt: string;
   previous: SessionRound[];
 }
 

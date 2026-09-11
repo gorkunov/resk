@@ -1,4 +1,4 @@
-All four round-1 comments are addressed; one is declined with a reason below.
+All four comments from the initial round are addressed; one is declined with a reason below.
 
 - **"The route hardcodes `max: 10`, use the config."** The limit is now read from
   [config.rateLimit](diff:src/config.ts#L14-L18) instead of the literal in
