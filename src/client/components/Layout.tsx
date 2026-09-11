@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useStore } from '../state/store.jsx';
 import { TopBar } from './TopBar.jsx';
 import { SummaryPane } from './SummaryPane.jsx';
@@ -5,12 +6,13 @@ import { DiffColumn } from './DiffColumn.jsx';
 
 export function Layout() {
   const { state } = useStore();
+  const [summaryComposerOpen, setSummaryComposerOpen] = useState(false);
   const panelCount = state.panels.length;
   const hasPanels = panelCount > 0;
 
   return (
     <div className="flex h-full flex-col" data-testid="layout" data-panels={panelCount}>
-      <TopBar />
+      <TopBar onCommentSummary={() => setSummaryComposerOpen(true)} />
       <div className="flex min-h-0 flex-1">
         <div
           className={
@@ -20,7 +22,10 @@ export function Layout() {
           }
         >
           <div className={hasPanels ? 'px-6 py-6' : 'mx-auto max-w-3xl px-6 py-10'}>
-            <SummaryPane />
+            <SummaryPane
+              composerOpen={summaryComposerOpen}
+              onCloseComposer={() => setSummaryComposerOpen(false)}
+            />
           </div>
         </div>
         {hasPanels && (

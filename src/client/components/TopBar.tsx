@@ -3,7 +3,7 @@ import type { Theme } from '../state/reducer.js';
 
 const THEME_ICON: Record<Theme, string> = { system: '◐', light: '☀', dark: '☾' };
 
-export function TopBar() {
+export function TopBar({ onCommentSummary }: { onCommentSummary: () => void }) {
   const { review, state, dispatch } = useStore();
 
   return (
@@ -30,6 +30,7 @@ export function TopBar() {
         <button
           type="button"
           data-testid="comment-summary-button"
+          onClick={onCommentSummary}
           className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
         >
           Comment on summary
