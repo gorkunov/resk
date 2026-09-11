@@ -159,7 +159,6 @@ test.describe('summary selection comments', () => {
       .poll(async () => (await (await fetch(`${resk.url}/api/comments`)).json()).length)
       .toBe(1);
     await page.getByTestId('finish-button').click();
-    await page.getByTestId('finish-confirm').click();
     expect(await resk.exit).toBe(0);
     expect(resk.stdout()).toBe(
       [

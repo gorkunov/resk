@@ -82,7 +82,7 @@ git diff main | resk --summary summary.md --diff -
 
 resk prints its URL to **stderr** and opens the browser. **stdout is reserved for the review
 output**, so an agent can capture it directly. The process exits when the reviewer clicks
-"Finish review", when the last tab has been closed for five seconds, or on Ctrl+C. In every case
+"Finish review" (the tab closes itself), when the last tab has been closed for five seconds, or on Ctrl+C. In every case
 the collected comments are printed first.
 
 ## Writing the summary

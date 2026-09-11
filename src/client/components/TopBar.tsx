@@ -5,9 +5,10 @@ const THEME_ICON: Record<Theme, string> = { system: '◐', light: '☀', dark: '
 
 interface TopBarProps {
   onFinish: () => void;
+  finishing: boolean;
 }
 
-export function TopBar({ onFinish }: TopBarProps) {
+export function TopBar({ onFinish, finishing }: TopBarProps) {
   const { review, state, dispatch } = useStore();
 
   return (
@@ -45,9 +46,10 @@ export function TopBar({ onFinish }: TopBarProps) {
           type="button"
           data-testid="finish-button"
           onClick={onFinish}
+          disabled={finishing}
           className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
         >
-          Finish review
+          {finishing ? 'Finishing…' : 'Finish review'}
         </button>
       </div>
     </header>

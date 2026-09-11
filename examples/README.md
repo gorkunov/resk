@@ -35,5 +35,5 @@ node dist/cli/index.js --summary examples/summary.md --diff examples/changes.pat
    **Comment** button appears and the comment is anchored to that text, which stays underlined.
    Click underlined text to see, edit or delete its comments.
 5. Toggle **Unified/Split** and the theme button.
-6. Click **Finish review**. The terminal where you started resk prints the comments as Markdown and
-   the process exits. Add `-- --json` to `npm run example` to get JSON instead.
+6. Click **Finish review**. The tab closes, the terminal where you started resk prints the comments
+   as Markdown, and the process exits. Add `-- --json` to `npm run example` to get JSON instead.

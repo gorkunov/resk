@@ -2,6 +2,7 @@ import { test, expect } from './fixtures.js';
 import { DEFAULT_ARGS, launchResk } from './launch.js';
 import type { Page } from '@playwright/test';
 import { selectText } from './select-text.js';
+import { gotoAsFreshTab } from './fresh-tab.js';
 
 async function addLineComment(page: Page, body: string) {
   await page.getByTestId('highlight').filter({ hasText: 'UserService' }).click();
@@ -22,21 +23,13 @@ async function addSummaryComment(page: Page, body: string) {
 }
 
 test.describe('finish review', () => {
-  test('the confirmation lists the comment counts and can be dismissed', async ({ page, resk }) => {
-    await page.goto(resk.url);
-    await addLineComment(page, 'Why is the timeout hardcoded?');
-    await addSummaryComment(page, 'Split this into two PRs.');
-
-    await page.getByTestId('finish-button').click();
-    const dialog = page.getByTestId('finish-dialog');
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText('2 comments in 1 file, 1 on summary');
-    await dialog.getByTestId('finish-cancel').click();
-    await expect(dialog).toHaveCount(0);
-
-    await page.getByTestId('finish-button').click();
-    await page.keyboard.press('Escape');
+  test('there is no confirmation step and the tab closes itself', async ({ page, resk }) => {
+    await gotoAsFreshTab(page, resk.url);
+    await expect(page.getByTestId('finish-button')).toBeVisible();
     await expect(page.getByTestId('finish-dialog')).toHaveCount(0);
+    const closed = page.waitForEvent('close', { timeout: 5_000 }).then(() => true);
+    await page.getByTestId('finish-button').click();
+    expect(await closed).toBe(true);
   });
 
   test('confirming prints the review to stdout, exits 0 and shows the finished screen', async ({
@@ -50,12 +43,17 @@ test.describe('finish review', () => {
       .poll(async () => (await (await fetch(`${resk.url}/api/comments`)).json()).length)
       .toBe(2);
 
+    const closed = page
+      .waitForEvent('close', { timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false);
     await page.getByTestId('finish-button').click();
-    await page.getByTestId('finish-confirm').click();
-    await expect(page.getByTestId('finished')).toBeVisible();
-    await expect(page.getByTestId('finished')).toContainText('Review finished');
 
     expect(await resk.exit).toBe(0);
+    // This page was opened with page.goto, so it has two history entries and the browser refuses
+    // window.close(); the finished screen is the fallback in that case.
+    expect(await closed).toBe(false);
+    await expect(page.getByTestId('finished')).toContainText('Review finished');
     expect(resk.stdout()).toBe(
       [
         '# Review comments (2)',
@@ -71,15 +69,16 @@ test.describe('finish review', () => {
     );
   });
 
-  test('finishing without comments says so in the dialog and on stdout', async ({ page }) => {
+  test('finishing without comments prints the empty result and closes the tab', async ({
+    page,
+  }) => {
     const resk = await launchResk(DEFAULT_ARGS);
-    await page.goto(resk.url);
+    await gotoAsFreshTab(page, resk.url);
+    const closed = page.waitForEvent('close', { timeout: 5_000 }).then(() => true);
     await page.getByTestId('finish-button').click();
-    await expect(page.getByTestId('finish-dialog')).toContainText('No comments yet');
-    await page.getByTestId('finish-confirm').click();
-    await expect(page.getByTestId('finished')).toBeVisible();
     expect(await resk.exit).toBe(0);
     expect(resk.stdout()).toBe('No review comments.\n');
+    expect(await closed).toBe(true);
   });
 
   test('--json output is produced when finishing from the browser', async ({ page }) => {
@@ -90,7 +89,6 @@ test.describe('finish review', () => {
       .poll(async () => (await (await fetch(`${resk.url}/api/comments`)).json()).length)
       .toBe(1);
     await page.getByTestId('finish-button').click();
-    await page.getByTestId('finish-confirm').click();
     expect(await resk.exit).toBe(0);
     const parsed = JSON.parse(resk.stdout());
     expect(parsed.comments[0]).toMatchObject({

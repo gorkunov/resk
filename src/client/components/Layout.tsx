@@ -4,19 +4,22 @@ import { useStore } from '../state/store.jsx';
 import { TopBar } from './TopBar.jsx';
 import { SummaryPane } from './SummaryPane.jsx';
 import { DiffColumn } from './DiffColumn.jsx';
-import { FinishDialog } from './FinishDialog.jsx';
 
 export function Layout({ onFinished }: { onFinished: () => void }) {
   const { state, syncError } = useStore();
-  const [finishOpen, setFinishOpen] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | undefined>(undefined);
 
-  const closeFinish = useCallback(() => setFinishOpen(false), []);
-  const confirmFinish = useCallback(() => {
+  const finish = useCallback(() => {
     setFinishing(true);
+    setFinishError(undefined);
     postFinish()
-      .then(onFinished)
+      .then(() => {
+        onFinished();
+        // Only tabs with a single history entry (like the one resk opens) may close themselves;
+        // otherwise the finished screen stays up.
+        window.close();
+      })
       .catch((error: Error) => {
         setFinishing(false);
         setFinishError(error.message);
@@ -27,12 +30,7 @@ export function Layout({ onFinished }: { onFinished: () => void }) {
 
   return (
     <div className="flex h-full flex-col" data-testid="layout" data-panels={panelCount}>
-      <TopBar
-        onFinish={() => {
-          setFinishError(undefined);
-          setFinishOpen(true);
-        }}
-      />
+      <TopBar onFinish={finish} finishing={finishing} />
       {syncError && (
         <div
           role="alert"
@@ -71,9 +69,6 @@ export function Layout({ onFinished }: { onFinished: () => void }) {
           </div>
         )}
       </div>
-      {finishOpen && (
-        <FinishDialog onCancel={closeFinish} onConfirm={confirmFinish} busy={finishing} />
-      )}
     </div>
   );
 }
