@@ -32,6 +32,17 @@ npm install -g resk     # or: npx resk ...
 
 Requires Node 20 or newer and git.
 
+## Try it
+
+```bash
+git clone <this repo> && cd resk
+npm install
+npm run example
+```
+
+This builds resk and opens a bundled example review (`examples/`): a 14-file change with a
+summary an agent would write. See `examples/README.md` for what to click.
+
 ## Usage
 
 ```

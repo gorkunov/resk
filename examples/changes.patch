@@ -1,0 +1,338 @@
+diff --git a/README.md b/README.md
+index d4b8487..103901d 100644
+--- a/README.md
++++ b/README.md
+@@ -7,3 +7,11 @@ Small user service.
+ - `GET /users/:id`
+ - `GET /users`
+ - `DELETE /users/:id`
++- `POST /auth/refresh` exchanges a refresh token for a new session (rate limited)
++
++## Configuration
++
++| Variable                  | Default | Purpose                                        |
++| ------------------------- | ------- | ---------------------------------------------- |
++| `REFRESH_TOKEN_TTL_HOURS` | `720`   | Lifetime of refresh tokens                     |
++| `RATE_LIMIT_MAX`          | `10`    | Requests per minute per IP on `/auth/refresh`  |
+diff --git a/assets/session-flow.png b/assets/session-flow.png
+new file mode 100644
+index 0000000..b163892
+Binary files /dev/null and b/assets/session-flow.png differ
+diff --git a/db/migrations/20260911_add_refresh_tokens.sql b/db/migrations/20260911_add_refresh_tokens.sql
+new file mode 100644
+index 0000000..714abf5
+--- /dev/null
++++ b/db/migrations/20260911_add_refresh_tokens.sql
+@@ -0,0 +1,10 @@
++CREATE TABLE refresh_tokens (
++  id          BIGSERIAL PRIMARY KEY,
++  user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
++  token_hash  CHAR(64) NOT NULL UNIQUE,
++  expires_at  TIMESTAMPTZ NOT NULL,
++  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
++);
++
++CREATE INDEX refresh_tokens_user_id_idx ON refresh_tokens (user_id);
++CREATE INDEX refresh_tokens_expires_at_idx ON refresh_tokens (expires_at);
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 6e7eb19..923ad9d 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -1,3 +1,4 @@
+ # Architecture
+ 
+-Sessions are refreshed on the client by extending the token lifetime.
++Sessions are refreshed server-side. The client holds an opaque refresh secret; the server stores
++only its SHA-256 hash. Every refresh rotates the token, so a leaked secret is only usable once.
+diff --git a/package.json b/package.json
+index af898c9..eef4144 100644
+--- a/package.json
++++ b/package.json
+@@ -1,9 +1,10 @@
+ {
+   "name": "example-service",
+-  "version": "1.4.0",
++  "version": "1.5.0",
+   "private": true,
+   "scripts": {
+-    "test": "vitest run"
++    "test": "vitest run",
++    "migrate": "node scripts/migrate.js db/migrations"
+   },
+   "dependencies": {
+     "express": "^5.1.0",
+diff --git a/src/auth/refresh.ts b/src/auth/refresh.ts
+new file mode 100644
+index 0000000..e0f037d
+--- /dev/null
++++ b/src/auth/refresh.ts
+@@ -0,0 +1,32 @@
++import { createHash, randomBytes } from 'node:crypto';
++import type { Clock } from '../utils/clock';
++
++export interface RefreshToken {
++  /** SHA-256 of the opaque secret handed to the client. The secret itself is never stored. */
++  hash: string;
++  /** Seconds since the epoch. */
++  expiresAt: number;
++}
++
++export const REFRESH_TOKEN_BYTES = 32;
++
++export function hashSecret(secret: string): string {
++  return createHash('sha256').update(secret).digest('hex');
++}
++
++export function issueRefreshToken(
++  clock: Clock,
++  ttlSeconds: number,
++): { secret: string; token: RefreshToken } {
++  const secret = randomBytes(REFRESH_TOKEN_BYTES).toString('base64url');
++  return {
++    secret,
++    token: { hash: hashSecret(secret), expiresAt: clock.now() + ttlSeconds },
++  };
++}
++
++/** Every successful refresh replaces the token, so a leaked secret is only usable once. */
++export function rotateRefreshToken(previous: RefreshToken, clock: Clock): RefreshToken {
++  const remaining = previous.expiresAt - clock.now();
++  return issueRefreshToken(clock, remaining).token;
++}
+diff --git a/src/auth/token.ts b/src/auth/token.ts
+deleted file mode 100644
+index 4474642..0000000
+--- a/src/auth/token.ts
++++ /dev/null
+@@ -1,13 +0,0 @@
+-export interface Token {
+-  value: string;
+-  expiresAt: number;
+-}
+-
+-/** Refreshes a token on the client by extending its lifetime. Never verified server-side. */
+-export function refreshOnClient(token: Token): Token {
+-  const now = Date.now();
+-  if (token.expiresAt > now) {
+-    return token;
+-  }
+-  return { value: token.value + '!', expiresAt: now + 3600_000 };
+-}
+diff --git a/src/config.ts b/src/config.ts
+index db66ea2..09697ef 100644
+--- a/src/config.ts
++++ b/src/config.ts
+@@ -2,6 +2,8 @@ export interface Config {
+   port: number;
+   databaseUrl: string;
+   sessionTtlHours: number;
++  refreshTokenTtlHours: number;
++  rateLimit: { windowMs: number; max: number };
+ }
+ 
+ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+@@ -9,5 +11,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+     port: Number(env.PORT ?? 3000),
+     databaseUrl: env.DATABASE_URL ?? 'postgres://localhost/app',
+     sessionTtlHours: Number(env.SESSION_TTL_HOURS ?? 24),
++    refreshTokenTtlHours: Number(env.REFRESH_TOKEN_TTL_HOURS ?? 24 * 30),
++    rateLimit: {
++      windowMs: Number(env.RATE_LIMIT_WINDOW_MS ?? 60_000),
++      max: Number(env.RATE_LIMIT_MAX ?? 10),
++    },
+   };
+ }
+diff --git a/src/middleware/rate-limit.ts b/src/middleware/rate-limit.ts
+new file mode 100644
+index 0000000..fc47e96
+--- /dev/null
++++ b/src/middleware/rate-limit.ts
+@@ -0,0 +1,28 @@
++import type { RequestHandler } from 'express';
++
++interface Options {
++  windowMs?: number;
++  max: number;
++}
++
++/** Fixed-window limiter keyed by client IP. Enough for a single instance; not shared across replicas. */
++export function rateLimit({ windowMs = 60_000, max }: Options): RequestHandler {
++  const hits = new Map<string, { count: number; resetAt: number }>();
++  return (req, res, next) => {
++    const key = req.ip ?? 'unknown';
++    const now = Date.now();
++    const entry = hits.get(key);
++    if (!entry || entry.resetAt <= now) {
++      hits.set(key, { count: 1, resetAt: now + windowMs });
++      next();
++      return;
++    }
++    entry.count += 1;
++    if (entry.count > max) {
++      res.setHeader('Retry-After', Math.ceil((entry.resetAt - now) / 1000));
++      res.status(429).json({ error: 'too many requests' });
++      return;
++    }
++    next();
++  };
++}
+diff --git a/src/routes/auth.ts b/src/routes/auth.ts
+new file mode 100644
+index 0000000..ad89825
+--- /dev/null
++++ b/src/routes/auth.ts
+@@ -0,0 +1,24 @@
++import { Router } from 'express';
++import { hashSecret } from '../auth/refresh';
++import { rateLimit } from '../middleware/rate-limit';
++import { SessionExpiredError } from '../services/user';
++
++export const authRouter = Router();
++
++authRouter.post('/refresh', rateLimit({ max: 10 }), async (req, res) => {
++  const secret = req.body?.refreshToken;
++  if (typeof secret !== 'string') {
++    res.status(400).json({ error: 'refreshToken is required' });
++    return;
++  }
++  try {
++    const session = await req.services.users.refreshSession({ hash: hashSecret(secret), expiresAt: 0 });
++    res.json({ session });
++  } catch (error) {
++    if (error instanceof SessionExpiredError) {
++      res.status(401).json({ error: 'session expired' });
++      return;
++    }
++    throw error;
++  }
++});
+diff --git a/src/routes/index.ts b/src/routes/index.ts
+index 01011d3..f6c7080 100644
+--- a/src/routes/index.ts
++++ b/src/routes/index.ts
+@@ -1,5 +1,7 @@
+ import { Router } from 'express';
+ import { usersRouter } from './users';
++import { authRouter } from './auth';
+ 
+ export const routes = Router();
+ routes.use('/users', usersRouter);
++routes.use('/auth', authRouter);
+diff --git a/src/services/user.ts b/src/services/user.ts
+index 2e902f0..482ce6d 100644
+--- a/src/services/user.ts
++++ b/src/services/user.ts
+@@ -1,20 +1,33 @@
+-import { Token } from '../auth/token';
++import { rotateRefreshToken, type RefreshToken } from '../auth/refresh';
+ import type { Db } from '../db';
++import type { Clock } from '../utils/clock';
+ import type { Session, User } from '../types';
+ 
++export class SessionExpiredError extends Error {
++  constructor() {
++    super('refresh token expired');
++    this.name = 'SessionExpiredError';
++  }
++}
++
+ export class UserService {
+-  constructor(private readonly db: Db) {}
++  constructor(
++    private readonly db: Db,
++    private readonly clock: Clock,
++  ) {}
+ 
+   async find(id: string): Promise<User | null> {
+     return this.db.users.find(id);
+   }
+ 
+-  async refresh(token: Token): Promise<Session> {
+-    const session = await this.db.sessions.byToken(token.value);
+-    if (!session) {
+-      throw new Error('no session');
++  async refreshSession(token: RefreshToken): Promise<Session> {
++    const stored = await this.db.refreshTokens.byHash(token.hash);
++    if (!stored || stored.expiresAt <= this.clock.now()) {
++      throw new SessionExpiredError();
+     }
+-    return session;
++    const rotated = rotateRefreshToken(stored, this.clock);
++    await this.db.refreshTokens.replace(stored.id, rotated);
++    return this.db.sessions.create(stored.userId, rotated);
+   }
+ 
+   async list(): Promise<User[]> {
+@@ -22,6 +35,8 @@ export class UserService {
+   }
+ 
+   async remove(id: string): Promise<void> {
++    await this.db.refreshTokens.revokeAll(id);
++    await this.db.sessions.revokeAll(id);
+     await this.db.users.remove(id);
+   }
+ }
+diff --git a/src/utils/time.ts b/src/utils/clock.ts
+similarity index 53%
+rename from src/utils/time.ts
+rename to src/utils/clock.ts
+index 02c81a1..37fc75f 100644
+--- a/src/utils/time.ts
++++ b/src/utils/clock.ts
+@@ -1,7 +1,14 @@
++export interface Clock {
++  /** Current time in seconds since the epoch. */
++  now(): number;
++}
++
+ export function nowSeconds(): number {
+   return Math.floor(Date.now() / 1000);
+ }
+ 
++export const systemClock: Clock = { now: nowSeconds };
++
+ export function addHours(ts: number, hours: number): number {
+   return ts + hours * 3600;
+ }
+diff --git a/tests/user.service.test.ts b/tests/user.service.test.ts
+index 98ff369..2d04062 100644
+--- a/tests/user.service.test.ts
++++ b/tests/user.service.test.ts
+@@ -1,16 +1,29 @@
+ import { describe, expect, it } from 'vitest';
+-import { UserService } from '../src/services/user';
++import { hashSecret } from '../src/auth/refresh';
++import { SessionExpiredError, UserService } from '../src/services/user';
+ import { fakeDb } from './helpers/fake-db';
+ 
+-describe('UserService.refresh', () => {
+-  it('returns the session for a known token', async () => {
+-    const db = fakeDb({ sessions: [{ token: 't1', userId: 'u1' }] });
+-    const service = new UserService(db);
+-    await expect(service.refresh({ value: 't1', expiresAt: 0 })).resolves.toMatchObject({ userId: 'u1' });
++const clock = { now: () => 1_000 };
++
++describe('UserService.refreshSession', () => {
++  it('rotates a valid refresh token and creates a session', async () => {
++    const db = fakeDb({ refreshTokens: [{ id: 1, userId: 'u1', hash: hashSecret('s1'), expiresAt: 2_000 }] });
++    const service = new UserService(db, clock);
++    const session = await service.refreshSession({ hash: hashSecret('s1'), expiresAt: 0 });
++    expect(session.userId).toBe('u1');
++    await expect(db.refreshTokens.byHash(hashSecret('s1'))).resolves.toBeNull();
++  });
++
++  it('rejects an expired refresh token', async () => {
++    const db = fakeDb({ refreshTokens: [{ id: 1, userId: 'u1', hash: hashSecret('s1'), expiresAt: 500 }] });
++    const service = new UserService(db, clock);
++    await expect(service.refreshSession({ hash: hashSecret('s1'), expiresAt: 0 })).rejects.toBeInstanceOf(
++      SessionExpiredError,
++    );
+   });
+ 
+   it('throws for an unknown token', async () => {
+-    const service = new UserService(fakeDb({}));
+-    await expect(service.refresh({ value: 'nope', expiresAt: 0 })).rejects.toThrow('no session');
++    const service = new UserService(fakeDb({}), clock);
++    await expect(service.refreshSession({ hash: 'nope', expiresAt: 0 })).rejects.toBeInstanceOf(SessionExpiredError);
+   });
+ });
