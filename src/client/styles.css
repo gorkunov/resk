@@ -57,6 +57,10 @@ body {
 .summary-markdown pre code {
   @apply bg-transparent p-0;
 }
+/* Code spans rendered inside a highlight chip take the chip's colors instead of their own box. */
+.summary-markdown [data-testid='highlight'] code {
+  @apply bg-transparent p-0 text-inherit;
+}
 .summary-markdown a[href] {
   @apply text-sky-700 underline decoration-sky-300 underline-offset-2 dark:text-sky-400 dark:decoration-sky-700;
 }

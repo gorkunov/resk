@@ -87,3 +87,40 @@ test.describe('typography', () => {
     expect(rowFamily).toContain('JetBrains Mono');
   });
 });
+
+test.describe('highlight rendering', () => {
+  test('a code span inside a highlight inherits the chip colors in every state', async ({
+    page,
+    resk,
+  }) => {
+    await page.goto(resk.url);
+    const chip = highlight(page, 'assets/logo.png');
+    const code = chip.locator('code');
+    await expect(code).toBeVisible();
+
+    const styles = () =>
+      chip.evaluate((button) => {
+        const codeEl = button.querySelector('code')!;
+        const b = getComputedStyle(button);
+        const c = getComputedStyle(codeEl);
+        return {
+          chipColor: b.color,
+          codeColor: c.color,
+          codeBackground: c.backgroundColor,
+          padding: c.paddingLeft,
+        };
+      });
+
+    let s = await styles();
+    expect(s.codeBackground).toBe('rgba(0, 0, 0, 0)');
+    expect(s.codeColor).toBe(s.chipColor);
+
+    await chip.click();
+    await expect(chip).toHaveAttribute('data-state', 'open');
+    // The chip animates its colours; wait for the filled state to settle.
+    await expect.poll(async () => (await styles()).chipColor).toBe('rgb(255, 255, 255)');
+    s = await styles();
+    expect(s.codeBackground).toBe('rgba(0, 0, 0, 0)');
+    expect(s.codeColor).toBe(s.chipColor);
+  });
+});
