@@ -151,7 +151,8 @@ npm run dev            # http://localhost:5173, proxies /api to port 4989
 
 Layout: `src/cli` (arguments, git), `src/server` (Hono API, static hosting, lifecycle),
 `src/client` (React, Tailwind, `@pierre/diffs`), `src/shared` (types, unified-diff parser, anchor
-grammar, output formatter), `tests/unit`, `tests/e2e`, `skills/resk`.
+grammar, output formatter), `tests/unit`, `tests/e2e`, `skills/resk`, `icons` (app icon and
+favicons, copied into the client build).
 
 ## License
 

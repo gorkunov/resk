@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { DEFAULT_ARGS, FIXTURES, launchResk } from './launch.js';
 
 const comment = {
@@ -159,7 +159,7 @@ test.describe('resk process', () => {
       const resk = await launchResk(['--summary', summary, '--keep-alive'], { cwd: repo });
       try {
         const review = await (await fetch(`${resk.url}/api/review`)).json();
-        expect(review.title).toBe('Working tree vs HEAD');
+        expect(review.title).toBe(`${basename(repo)}: Working tree vs HEAD`);
         expect(
           review.files.map((f: { path: string; status: string }) => [f.path, f.status]),
         ).toEqual([

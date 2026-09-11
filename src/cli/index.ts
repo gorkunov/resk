@@ -72,7 +72,7 @@ async function loadDiff(options: CliOptions): Promise<{ diff: string; title: str
     throw new ExitError((error as Error).message, 2, true);
   }
   try {
-    return { diff: await collectDiff(plan, root), title: plan.title };
+    return { diff: await collectDiff(plan, root), title: `${basename(root)}: ${plan.title}` };
   } catch (error) {
     if (error instanceof GitError) throw new ExitError(error.message, 2);
     throw error;

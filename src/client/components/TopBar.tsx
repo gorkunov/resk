@@ -12,7 +12,17 @@ export function TopBar({ onFinish }: TopBarProps) {
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-4 border-b border-neutral-200 bg-white px-4 dark:border-neutral-800 dark:bg-neutral-950">
-      <span className="font-semibold tracking-tight">resk</span>
+      <span className="flex items-center gap-2 font-semibold tracking-tight">
+        <img
+          data-testid="app-icon"
+          src="/icon-64.png"
+          alt=""
+          width={20}
+          height={20}
+          className="h-5 w-5"
+        />
+        resk
+      </span>
       <span
         className="truncate text-sm text-neutral-600 dark:text-neutral-400"
         data-testid="review-title"

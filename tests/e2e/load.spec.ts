@@ -46,3 +46,32 @@ test.describe('initial load', () => {
     await expect(broken).toHaveAttribute('title', /does not match any changed file/);
   });
 });
+
+test.describe('branding', () => {
+  test('the tab title names the session and the app, and the favicon is served', async ({
+    page,
+    resk,
+  }) => {
+    await page.goto(resk.url);
+    await expect(page).toHaveTitle('sample.patch - Resk');
+    const icons = page.locator('link[rel="icon"]');
+    await expect(icons.first()).toHaveAttribute('href', /favicon\.ico|icon-\d+\.png/);
+    const href = (await icons.first().getAttribute('href'))!;
+    const res = await fetch(new URL(href, resk.url));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toMatch(/image\//);
+    await expect(page.getByTestId('app-icon')).toBeVisible();
+    await expect(page.getByTestId('app-icon')).toHaveAttribute('src', /icon-\d+\.png/);
+  });
+
+  test('a custom title is used as the session name', async ({ page }) => {
+    const { launchResk, DEFAULT_ARGS } = await import('./launch.js');
+    const resk = await launchResk([...DEFAULT_ARGS, '--title', 'Auth refresh']);
+    try {
+      await page.goto(resk.url);
+      await expect(page).toHaveTitle('Auth refresh - Resk');
+    } finally {
+      await resk.kill();
+    }
+  });
+});

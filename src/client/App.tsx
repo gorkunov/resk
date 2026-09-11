@@ -33,6 +33,10 @@ export function App() {
     return connectEvents();
   }, [finished]);
 
+  useEffect(() => {
+    document.title = load.status === 'ready' ? `${load.review.title} - Resk` : 'Resk';
+  }, [load]);
+
   const retry = (): void => {
     setLoad({ status: 'loading' });
     setAttempt((n) => n + 1);
