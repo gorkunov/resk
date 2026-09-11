@@ -61,6 +61,7 @@ resk --summary <file.md> [target] [compare-with] [options]
   --summary <path>   Markdown summary file ("-" reads stdin). Required.
   --diff <path|->    review a unified diff from a file or stdin instead of running git
   --title <text>     review title shown in the top bar
+  --session <key>    review session key; later runs with the same key appear as updates
   --no-untracked     exclude untracked files (only affects "." and "working")
   --context <n>      context lines per hunk passed to git
   --port <n>         preferred port (default 4989); falls back to the next free port
@@ -78,6 +79,7 @@ resk --summary summary.md @ main         # current HEAD vs main
 resk --summary summary.md staged         # staged changes
 resk --summary summary.md 6f4a9b7        # one commit (root commits work too)
 git diff main | resk --summary summary.md --diff -
+resk --summary update.md --session feat-refresh @ main   # second round of a session (see below)
 ```
 
 resk prints its URL to **stderr** and opens the browser. **stdout is reserved for the review
@@ -126,6 +128,24 @@ object `{ "title": ..., "comments": [...] }` where each line comment carries an 
 with the referenced diff lines and selection comments carry the quote and its offsets in the
 target. No comments prints `No review comments.`
 
+## Review sessions
+
+A review rarely ends after one round. Pass `--session <key>` with a key of your choice, and after
+addressing the comments run resk again with the same key and a summary of what changed. The
+reviewer sees the original summary, every earlier update, and the new one as **Update 1**,
+**Update 2**, ... on a single page that opens at the latest update. Highlights in every round point
+into the current diff, so a stale line range shows as a broken highlight rather than the wrong code.
+
+```bash
+resk --summary summary.md --session feat-refresh @ main    # round 1
+# ...address the comments...
+resk --summary update-1.md --session feat-refresh @ main   # round 2: shown as "Update 1"
+```
+
+Finished rounds (summary and comments) are stored in `~/.resk/sessions/<key>.json`; `RESK_HOME`
+moves the directory. A run that ends without **Finish review** is not recorded, so an interrupted
+round can simply be started again. Without `--title`, the session key is the review title.
+
 ## Claude Code skill
 
 The repository ships a skill that teaches an agent the workflow and the anchor format.
@@ -147,7 +167,8 @@ The repository ships a skill that teaches an agent the workflow and the anchor f
    `BASH_MAX_TIMEOUT_MS` in the `env` section of the same settings file.
 
 After that, "ask me for a review" or "use resk" in a Claude Code session starts the flow: the agent
-writes the summary, runs `resk`, and continues with the comments it gets back.
+picks a session key, writes the summary, runs `resk`, and continues with the comments it gets back.
+Follow-up reviews of the same work reuse the key, so each shows up as an update to the summary.
 
 ## Development
 

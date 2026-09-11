@@ -9,7 +9,7 @@ import {
   textBetween,
 } from '../text-offsets.js';
 import { useStore } from '../state/store.jsx';
-import { Markdown } from './Markdown.jsx';
+import { SessionRounds } from './SessionRounds.jsx';
 import { ChangedFiles } from './ChangedFiles.jsx';
 import { CommentCard } from './CommentCard.jsx';
 import { CommentComposer } from './CommentComposer.jsx';
@@ -51,7 +51,7 @@ function clampLeft(left: number, width: number, wrapper: HTMLElement): number {
 }
 
 export function SummaryPane() {
-  const { review, state, dispatch } = useStore();
+  const { state, dispatch } = useStore();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -170,7 +170,7 @@ export function SummaryPane() {
   return (
     <section data-testid="summary" ref={wrapperRef} className="relative">
       <div ref={markdownRef} data-testid="summary-markdown" onClick={onMarkdownClick}>
-        <Markdown source={review.summary} />
+        <SessionRounds />
       </div>
       <ChangedFiles />
 

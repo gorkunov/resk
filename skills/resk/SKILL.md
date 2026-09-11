@@ -1,6 +1,6 @@
 ---
 name: resk
-description: After completing an implementation, ask the user for a code review through resk. Write an importance-ordered Markdown summary of the changes with diff: anchors, run the resk CLI, then treat the comments it prints as the next work items.
+description: After completing an implementation, ask the user for a code review through resk. Pick a session key for the piece of work, write an importance-ordered Markdown summary with diff: anchors, run the resk CLI, treat the printed comments as work items, and report each follow-up round as an update in the same session.
 ---
 
 # resk: summary-first code review
@@ -9,14 +9,31 @@ resk opens a browser page where the user reads **your summary of the changes** f
 into the diff through highlights you place in the text. The user comments on lines, files, or the
 summary; when they finish, the comments are printed to your stdout.
 
+Reviews take rounds. resk keeps the rounds of one piece of work together in a **session**: the
+first run shows your summary, every later run with the same key shows your update as
+"Update 1", "Update 2", ... underneath it, and the page opens at the newest update.
+
 ## When to use
 
-After you have finished a change and before you commit or hand over, or whenever the user asks
-for a review of uncommitted work, a branch, or a commit.
+After you have finished a change and before you commit or hand over, whenever the user asks for a
+review, and again after you have addressed the comments of an earlier round.
+
+## Sessions: one key per piece of work
+
+- Choose the key when the work starts and keep it for every resk run about that work: the branch
+  name or a short slug such as `feat-refresh-tokens` or `fix-1234-timeout`. Pass it as
+  `--session <key>`.
+- A new piece of work gets a new key. Never reuse a key for unrelated changes.
+- Keep the diff target the same in every round so the reviewer still sees the whole change and the
+  earlier highlights keep working. Prefer `@ <base>` (branch vs its base) when you commit as you
+  go; `.` only shows uncommitted work.
+- resk confirms the round on stderr (`resk: session "<key>": round 2 (1 finished round)`) and
+  stores finished rounds in `~/.resk/sessions/<key>.json`. A run that is not finished by the user is
+  not recorded; just run it again.
 
 ## Workflow
 
-1. **Write the summary** to a temporary file (for example `/tmp/resk-summary.md`).
+1. **Write the summary** (round 1) to a temporary file (for example `/tmp/resk-summary.md`).
    - Order by importance: behaviour, security, data, and public-interface changes first; refactors
      and internal changes next; tests, docs, and cosmetic changes last. Use a heading per tier
      (`## Critical`, `## Notable`, `## Minor`, or whatever fits).
@@ -25,13 +42,13 @@ for a review of uncommitted work, a branch, or a commit.
      line range for anything you explain in words; use whole-file anchors for files you only list.
    - Mention every changed file at least once. A bare inline code span that equals a changed path
      (`` `src/utils/time.ts` ``) is automatically clickable.
-2. **Run resk** with the target that matches the work:
+2. **Run resk** with the session key and the target that matches the work:
 
    ```bash
-   resk --summary /tmp/resk-summary.md            # uncommitted work (working tree vs HEAD, incl. untracked)
-   resk --summary /tmp/resk-summary.md @ main     # current branch vs main
-   resk --summary /tmp/resk-summary.md staged     # staged changes only
-   resk --summary /tmp/resk-summary.md 6f4a9b7    # a single commit
+   resk --summary /tmp/resk-summary.md --session feat-refresh-tokens @ main   # branch vs main
+   resk --summary /tmp/resk-summary.md --session fix-1234-timeout             # uncommitted work vs HEAD
+   resk --summary /tmp/resk-summary.md --session release-notes staged         # staged changes only
+   resk --summary /tmp/resk-summary.md --session hotfix-6f4a9b7 6f4a9b7       # a single commit
    ```
 
    Use `--no-open` if the environment cannot open a browser; resk prints the URL on stderr.
@@ -39,8 +56,41 @@ for a review of uncommitted work, a branch, or a commit.
 3. **Fix anchor warnings.** Lines like `resk: warning: anchor "diff:src/foo.ts#L10" ...` on stderr
    mean a highlight will not work. Correct the summary and run again if practical.
 4. **Read stdout when the process exits.** It is Markdown grouped by file with the referenced diff
-   lines quoted, or JSON with `--json`. Treat each comment as a work item: address them, then offer
-   another review. `No review comments.` means the review passed.
+   lines quoted, or JSON with `--json`. Treat each comment as a work item. `No review comments.`
+   means the review passed.
+5. **Address the comments, then write an update** (see below) to a new file and run resk again
+   with the **same key and target**. Repeat until the review passes or the user stops.
+
+## Writing an update (round 2 and later)
+
+The update is a delta the reviewer reads next to your original summary. Do not rewrite or repeat
+the summary; the page already shows it.
+
+- Open with one sentence of status: how many comments were addressed, how many declined.
+- One bullet per reviewer comment, in the order the comments came. Quote or paraphrase the comment
+  in bold, then say what you changed and link the new lines with a `diff:` anchor.
+- If you did not do something, say so in its bullet and give the reason. Never drop a comment
+  silently, and do not argue at length: one or two sentences, and offer the alternative.
+- Add an **Also changed** paragraph for anything beyond the comments (a refactor the fix needed, a
+  new file, a behaviour change) with anchors. Nothing that changed may go unmentioned.
+- Keep it short: a few lines per comment. Line numbers in your earlier rounds may no longer match
+  the code; that is expected, and the reviewer follows your update, which must be accurate.
+
+```markdown
+Three of four comments addressed; the purge job is declined for now.
+
+- **"The route hardcodes `max: 10`, use the config."** Read from
+  [config.rateLimit](diff:src/config.ts#L14-L18) in [POST /auth/refresh](diff:src/routes/auth.ts#L8).
+- **"Is the unsalted hash safe?"** Kept: the secret is 32 random bytes. Comment added at
+  [hashSecret()](diff:src/auth/refresh.ts#L13-L15); happy to switch to HMAC if you prefer.
+- **"Nothing purges expired rows."** Declined for this change: it needs a scheduler we do not have.
+  Follow-up task opened; the [expiry index](diff:db/migrations/20260911_add_refresh_tokens.sql#L9-L10)
+  keeps the later cleanup cheap.
+- **"Add a test for the unknown-token path."** Added in
+  [user.service.test.ts](diff:tests/user.service.test.ts#L8-L29).
+
+Also changed: [remove()](diff:src/services/user.ts#L38-L39) revokes refresh tokens before sessions.
+```
 
 ## Anchor format
 
@@ -58,7 +108,7 @@ exactly as they appear in the diff. Line numbers refer to the **new** side unles
 Read line numbers from the diff you are describing (`git diff` hunk headers give the new-side
 start line). A path that is unique by suffix also resolves (`diff:user.ts`), but prefer full paths.
 
-## Example summary
+## Example summary (round 1)
 
 ```markdown
 ## Critical
@@ -93,7 +143,8 @@ Renamed helpers in [utils/time.ts](diff:src/utils/time.ts); test updates in `tes
 ```
 
 Summary comments are anchored to a text selection and written as `On "<selected text>": <comment>`.
-Treat the quoted text as the part of your summary the user is reacting to.
+Treat the quoted text as the part of your summary or update the user is reacting to. Only the
+comments of the current round are printed; earlier rounds are in the session file if you need them.
 
 ## Constraints
 

@@ -3,6 +3,11 @@ import type { Theme } from '../state/reducer.js';
 
 const THEME_ICON: Record<Theme, string> = { system: '◐', light: '☀', dark: '☾' };
 
+/** Round 1 is the summary itself; every later round is an update to it. */
+export function roundLabel(round: number): string {
+  return round === 1 ? 'Round 1' : `Update ${round - 1}`;
+}
+
 interface TopBarProps {
   onFinish: () => void;
   finishing: boolean;
@@ -30,6 +35,15 @@ export function TopBar({ onFinish, finishing }: TopBarProps) {
       >
         {review.title}
       </span>
+      {review.session && (
+        <span
+          data-testid="session-round"
+          title={`Review session "${review.session.key}"`}
+          className="shrink-0 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800 dark:bg-sky-900/50 dark:text-sky-200"
+        >
+          {roundLabel(review.session.round)}
+        </span>
+      )}
       <div className="ml-auto flex items-center gap-2">
         <button
           type="button"

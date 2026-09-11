@@ -61,6 +61,17 @@ describe('parseCliArgs', () => {
     expect(() => parseCliArgs(['.'])).toThrow(/--summary/);
   });
 
+  it('reads the --session key', () => {
+    expect(parseCliArgs(['--summary', 's.md', '--session', 'feat/refresh'])).toMatchObject({
+      session: 'feat/refresh',
+    });
+    expect(parseCliArgs(['--summary', 's.md'])).not.toHaveProperty('session');
+  });
+
+  it('rejects a blank --session key', () => {
+    expect(() => parseCliArgs(['--summary', 's.md', '--session', '  '])).toThrow(/--session/);
+  });
+
   it('rejects positionals together with --diff', () => {
     expect(() => parseCliArgs(['--summary', 's.md', '--diff', 'x.patch', '.'])).toThrow(/--diff/);
   });

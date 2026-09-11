@@ -6,6 +6,7 @@ file, a rename, a SQL migration, tests, docs, and a binary.
 
 - `summary.md`: the summary an agent would write, ordered from critical to minor, with `diff:` anchors.
 - `changes.patch`: the matching unified diff (generated with `git diff -M`).
+- `update-1.md`: the update an agent would write for a second round, after addressing comments.
 
 ## Run it
 
@@ -37,3 +38,18 @@ node dist/cli/index.js --summary examples/summary.md --diff examples/changes.pat
 5. Toggle **Unified/Split** and the theme button.
 6. Click **Finish review**. The tab closes, the terminal where you started resk prints the comments
    as Markdown, and the process exits. Add `-- --json` to `npm run example` to get JSON instead.
+
+## Follow-up rounds
+
+Reviews usually take more than one round. The session variant of the example keeps the rounds
+together under the key `example-service`:
+
+```bash
+npm run example:session    # round 1: the summary above; click Finish review when done
+npm run example:update     # round 2: the same page with "Update 1" appended and opened
+```
+
+The second run shows the original summary first, then **Update 1** with what the agent changed in
+response to the comments, and opens the page at the update. Highlights in both parts point into
+the current diff. Finished rounds live in `~/.resk/sessions/example-service.json`; delete that file
+to start the demo over. A run that ends without **Finish review** is not recorded.

@@ -7,9 +7,11 @@ function hash(text: string): string {
   return (h >>> 0).toString(36);
 }
 
-/** Storage key that identifies this review by its title and changed files. */
+/** Storage key that identifies this review by its title, session round, and changed files. */
 export function viewedStorageKey(review: ReviewPayload): string {
-  return `resk.viewed:${hash([review.title, ...review.files.map((f) => f.path)].join('\n'))}`;
+  const round = review.session ? `round ${review.session.round}` : '';
+  const parts = [review.title, round, ...review.files.map((f) => f.path)];
+  return `resk.viewed:${hash(parts.join('\n'))}`;
 }
 
 function isStringArray(value: unknown): value is string[] {

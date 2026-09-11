@@ -13,7 +13,9 @@ import {
 import { buildGitPlan } from './git-plan.js';
 import { collectDiff, findRepoRoot, GitError } from './git.js';
 import { anchorWarnings } from './warnings.js';
+import { SessionStore, SessionStoreError, sessionRoot } from './session-store.js';
 import { parseUnifiedDiff } from '../shared/diff-parser.js';
+import type { SessionInfo } from '../shared/types.js';
 import { formatReviewJson, formatReviewMarkdown } from '../shared/output-format.js';
 import { ReviewSession } from '../server/session.js';
 import { createApp } from '../server/app.js';
@@ -79,6 +81,32 @@ async function loadDiff(options: CliOptions): Promise<{ diff: string; title: str
   }
 }
 
+/** Loads the finished rounds of a review session and describes the round that starts now. */
+async function openSession(key: string): Promise<{ store: SessionStore; info: SessionInfo }> {
+  const store = new SessionStore(sessionRoot());
+  let stored;
+  try {
+    stored = await store.load(key);
+  } catch (error) {
+    if (error instanceof SessionStoreError) throw new ExitError(error.message, 2);
+    throw error;
+  }
+  const info: SessionInfo = {
+    key,
+    round: stored.rounds.length + 1,
+    previous: stored.rounds.map((round) => ({
+      number: round.number,
+      summary: round.summary,
+      finishedAt: round.finishedAt,
+      commentCount: round.comments.length,
+    })),
+  };
+  const finished = stored.rounds.length;
+  const suffix = finished === 0 ? '' : ` (${finished} finished round${finished === 1 ? '' : 's'})`;
+  log(`session "${key}": round ${info.round}${suffix}`);
+  return { store, info };
+}
+
 async function run(argv: string[]): Promise<void> {
   let options: CliOptions;
   try {
@@ -94,10 +122,11 @@ async function run(argv: string[]): Promise<void> {
 
   const summary = await readInput(options.summary, 'summary file');
   const { diff, title: defaultTitle } = await loadDiff(options);
-  const title = options.title ?? defaultTitle;
+  const title = options.title ?? options.session ?? defaultTitle;
   const files = parseUnifiedDiff(diff);
   if (files.length === 0) log('warning: the diff is empty');
   for (const warning of anchorWarnings(summary, files)) log(`warning: ${warning}`);
+  const reviewSession = options.session ? await openSession(options.session) : undefined;
 
   const graceMs = Number(process.env.RESK_EXIT_GRACE_MS ?? DEFAULT_GRACE_MS);
   let server: RunningServer | undefined;
@@ -108,18 +137,35 @@ async function run(argv: string[]): Promise<void> {
       const output = options.json
         ? formatReviewJson(title, comments, files)
         : formatReviewMarkdown(comments, files);
-      process.stdout.write(output, () => {
-        // Give the /api/finish response a moment to reach the browser before exiting.
-        setTimeout(() => {
-          const closing = server ? server.close().catch(() => undefined) : Promise.resolve();
-          void closing.then(() => process.exit(0));
-        }, 50);
+      const saved = reviewSession
+        ? reviewSession.store
+            .appendRound(reviewSession.info.key, {
+              summary,
+              comments,
+              finishedAt: new Date().toISOString(),
+            })
+            .then(
+              () => undefined,
+              (error: Error) => log(`warning: could not record this round (${error.message})`),
+            )
+        : Promise.resolve();
+      void saved.then(() => {
+        process.stdout.write(output, () => {
+          // Give the /api/finish response a moment to reach the browser before exiting.
+          setTimeout(() => {
+            const closing = server ? server.close().catch(() => undefined) : Promise.resolve();
+            void closing.then(() => process.exit(0));
+          }, 50);
+        });
       });
     },
   });
 
   const clientDir = resolve(dirname(fileURLToPath(import.meta.url)), '../client');
-  const app = createApp({ review: { title, summary, files }, session, clientDir });
+  const review = reviewSession
+    ? { title, summary, files, session: reviewSession.info }
+    : { title, summary, files };
+  const app = createApp({ review, session, clientDir });
   try {
     server = await startServer(app, { host: options.host, port: options.port });
   } catch (error) {

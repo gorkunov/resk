@@ -58,8 +58,25 @@ export interface Comment {
   updatedAt: string;
 }
 
+/** A finished round of a review session, as shown to the reviewer. */
+export interface SessionRound {
+  number: number;
+  summary: string;
+  finishedAt: string;
+  commentCount: number;
+}
+
+export interface SessionInfo {
+  key: string;
+  /** 1-based number of the round being reviewed now; earlier rounds are in `previous`. */
+  round: number;
+  previous: SessionRound[];
+}
+
 export interface ReviewPayload {
   title: string;
+  /** The current round's Markdown: the whole summary in round 1, an update afterwards. */
   summary: string;
   files: FileChange[];
+  session?: SessionInfo;
 }

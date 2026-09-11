@@ -9,6 +9,8 @@ export interface CliOptions {
   summary: string;
   diff?: string;
   title?: string;
+  /** Review session key; runs with the same key build on each other. */
+  session?: string;
   untracked: boolean;
   context?: number;
   port: number;
@@ -53,6 +55,10 @@ export function buildProgram(): Command {
       'read a unified diff from a file ("-" reads stdin) instead of running git',
     )
     .option('--title <text>', 'review title shown in the top bar')
+    .option(
+      '--session <key>',
+      'review session key; a later run with the same key is shown as an update to the earlier summary',
+    )
     .option('--no-untracked', 'exclude untracked files (only affects "." and "working")')
     .option('--context <n>', 'context lines per hunk passed to git', nonNegativeInt)
     .option('--port <n>', 'preferred port; 0 picks a free one', nonNegativeInt, 4989)
@@ -94,6 +100,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     summary: string;
     diff?: string;
     title?: string;
+    session?: string;
     untracked: boolean;
     context?: number;
     port: number;
@@ -110,6 +117,9 @@ export function parseCliArgs(argv: string[]): CliOptions {
   if (raw.summary === '-' && raw.diff === '-') {
     throw new CliUsageError('only one of --summary and --diff can read from stdin');
   }
+  if (raw.session !== undefined && raw.session.trim() === '') {
+    throw new CliUsageError('--session needs a non-empty key');
+  }
 
   const options: CliOptions = {
     summary: raw.summary,
@@ -122,6 +132,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
   };
   if (raw.diff !== undefined) options.diff = raw.diff;
   if (raw.title !== undefined) options.title = raw.title;
+  if (raw.session !== undefined) options.session = raw.session.trim();
   if (raw.context !== undefined) options.context = raw.context;
   if (target !== undefined) options.target = target;
   if (compareWith !== undefined) options.compareWith = compareWith;
