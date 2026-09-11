@@ -1,0 +1,118 @@
+import { describe, expect, it } from 'vitest';
+import { initialState, nextTheme, reduce, type AppState } from '../../src/client/state/reducer.js';
+import type { Comment } from '../../src/shared/types.js';
+
+const ORDER = ['a.ts', 'b.ts', 'c.ts'];
+
+function open(
+  state: AppState,
+  path: string,
+  range?: { side: 'old' | 'new'; start: number; end: number },
+) {
+  return reduce(
+    state,
+    range ? { type: 'openPanel', path, range } : { type: 'openPanel', path },
+    ORDER,
+  );
+}
+
+const comment: Comment = {
+  id: 'c1',
+  target: { kind: 'file', path: 'a.ts' },
+  body: 'hi',
+  createdAt: '2026-09-11T10:00:00.000Z',
+  updatedAt: '2026-09-11T10:00:00.000Z',
+};
+
+describe('panels', () => {
+  it('starts with no panels', () => {
+    expect(initialState.panels).toEqual([]);
+    expect(initialState.scrollTarget).toBeUndefined();
+  });
+
+  it('keeps panels in diff order regardless of the order they were opened', () => {
+    let state = open(initialState, 'c.ts');
+    state = open(state, 'a.ts');
+    state = open(state, 'b.ts');
+    expect(state.panels.map((p) => p.path)).toEqual(['a.ts', 'b.ts', 'c.ts']);
+  });
+
+  it('requests a scroll to the panel that was just opened', () => {
+    let state = open(initialState, 'c.ts');
+    expect(state.scrollTarget).toEqual({ path: 'c.ts', nonce: 1 });
+    state = open(state, 'a.ts');
+    expect(state.scrollTarget).toEqual({ path: 'a.ts', nonce: 2 });
+  });
+
+  it('reuses an open panel and bumps the scroll nonce', () => {
+    let state = open(initialState, 'a.ts');
+    state = open(state, 'a.ts');
+    expect(state.panels).toHaveLength(1);
+    expect(state.scrollTarget).toEqual({ path: 'a.ts', nonce: 2 });
+  });
+
+  it('stores the focused range on the panel with a nonce', () => {
+    let state = open(initialState, 'a.ts', { side: 'new', start: 3, end: 5 });
+    expect(state.panels[0]!.focus).toEqual({ side: 'new', start: 3, end: 5, nonce: 1 });
+    state = open(state, 'a.ts', { side: 'old', start: 1, end: 1 });
+    expect(state.panels[0]!.focus).toEqual({ side: 'old', start: 1, end: 1, nonce: 2 });
+  });
+
+  it('leaves the focused range alone for whole-file opens', () => {
+    let state = open(initialState, 'a.ts', { side: 'new', start: 3, end: 5 });
+    state = open(state, 'a.ts');
+    expect(state.panels[0]!.focus).toEqual({ side: 'new', start: 3, end: 5, nonce: 1 });
+  });
+
+  it('appends unknown paths at the end', () => {
+    let state = open(initialState, 'zzz.ts');
+    state = open(state, 'a.ts');
+    expect(state.panels.map((p) => p.path)).toEqual(['a.ts', 'zzz.ts']);
+  });
+
+  it('closes panels and ignores unknown paths', () => {
+    let state = open(open(initialState, 'a.ts'), 'b.ts');
+    state = reduce(state, { type: 'closePanel', path: 'a.ts' }, ORDER);
+    expect(state.panels.map((p) => p.path)).toEqual(['b.ts']);
+    expect(reduce(state, { type: 'closePanel', path: 'nope' }, ORDER)).toBe(state);
+  });
+
+  it('defaults to unified and toggles the diff style per panel', () => {
+    let state = open(open(initialState, 'a.ts'), 'b.ts');
+    expect(state.panels.map((p) => p.diffStyle)).toEqual(['unified', 'unified']);
+    state = reduce(state, { type: 'setDiffStyle', path: 'a.ts', diffStyle: 'split' }, ORDER);
+    expect(state.panels.map((p) => p.diffStyle)).toEqual(['split', 'unified']);
+  });
+});
+
+describe('theme', () => {
+  it('cycles system, light, dark', () => {
+    expect(nextTheme('system')).toBe('light');
+    expect(nextTheme('light')).toBe('dark');
+    expect(nextTheme('dark')).toBe('system');
+    const state = reduce({ ...initialState, theme: 'dark' }, { type: 'cycleTheme' }, ORDER);
+    expect(state.theme).toBe('system');
+  });
+});
+
+describe('comments', () => {
+  it('replaces, adds, updates and deletes comments', () => {
+    let state = reduce(initialState, { type: 'setComments', comments: [comment] }, ORDER);
+    expect(state.comments).toEqual([comment]);
+    const second = { ...comment, id: 'c2', target: { kind: 'summary' as const } };
+    state = reduce(state, { type: 'addComment', comment: second }, ORDER);
+    expect(state.comments.map((c) => c.id)).toEqual(['c1', 'c2']);
+    state = reduce(
+      state,
+      { type: 'updateComment', id: 'c1', body: 'edited', updatedAt: '2026-09-11T11:00:00.000Z' },
+      ORDER,
+    );
+    expect(state.comments[0]).toMatchObject({
+      body: 'edited',
+      updatedAt: '2026-09-11T11:00:00.000Z',
+    });
+    expect(state.comments[0]!.createdAt).toBe(comment.createdAt);
+    state = reduce(state, { type: 'deleteComment', id: 'c1' }, ORDER);
+    expect(state.comments.map((c) => c.id)).toEqual(['c2']);
+  });
+});

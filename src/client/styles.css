@@ -1,0 +1,67 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+}
+
+.summary-markdown {
+  @apply text-[15px] leading-7;
+}
+.summary-markdown h1 {
+  @apply mt-6 mb-3 text-2xl font-semibold tracking-tight;
+}
+.summary-markdown h2 {
+  @apply mt-8 mb-3 text-lg font-semibold tracking-tight first:mt-0;
+}
+.summary-markdown h3 {
+  @apply mt-6 mb-2 text-base font-semibold;
+}
+.summary-markdown p {
+  @apply my-3;
+}
+.summary-markdown ul {
+  @apply my-3 list-disc pl-6;
+}
+.summary-markdown ol {
+  @apply my-3 list-decimal pl-6;
+}
+.summary-markdown li {
+  @apply my-1;
+}
+.summary-markdown code {
+  @apply rounded bg-neutral-100 px-1 py-0.5 font-mono text-[13px] dark:bg-neutral-800;
+}
+.summary-markdown pre {
+  @apply my-4 overflow-x-auto rounded-lg bg-neutral-100 p-4 font-mono text-[13px] leading-6 dark:bg-neutral-900;
+}
+.summary-markdown pre code {
+  @apply bg-transparent p-0;
+}
+.summary-markdown a[href] {
+  @apply text-sky-700 underline decoration-sky-300 underline-offset-2 dark:text-sky-400 dark:decoration-sky-700;
+}
+.summary-markdown blockquote {
+  @apply my-3 border-l-4 border-neutral-200 pl-4 text-neutral-600 dark:border-neutral-700 dark:text-neutral-400;
+}
+.summary-markdown table {
+  @apply my-4 w-full border-collapse text-sm;
+}
+.summary-markdown th,
+.summary-markdown td {
+  @apply border border-neutral-200 px-3 py-1.5 text-left dark:border-neutral-700;
+}
+.summary-markdown hr {
+  @apply my-6 border-neutral-200 dark:border-neutral-800;
+}
