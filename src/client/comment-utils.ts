@@ -4,6 +4,8 @@ export function targetLabel(target: CommentTarget): string {
   switch (target.kind) {
     case 'summary':
       return 'summary';
+    case 'summary-selection':
+      return 'summary-selection';
     case 'file':
       return 'file';
     case 'lines':

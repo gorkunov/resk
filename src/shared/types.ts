@@ -45,6 +45,8 @@ export type ResolvedAnchor =
 
 export type CommentTarget =
   | { kind: 'summary' }
+  /** A comment on a text selection in the summary; offsets index the rendered summary text. */
+  | { kind: 'summary-selection'; quote: string; start: number; end: number }
   | { kind: 'file'; path: string }
   | { kind: 'lines'; path: string; side: Side; start: number; end: number };
 

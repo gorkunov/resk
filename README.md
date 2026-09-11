@@ -100,23 +100,24 @@ to enumerate files.
 
 Markdown by default:
 
-```markdown
-# Review comments (3)
+```text
+# Review comments (4)
 
 ## Summary
-
 - Split this into two PRs; the migration should ship first.
+- On "rate-limited endpoint": Which limit applies to the retry path?
 
 ## src/services/user.ts
-
 - (file) Please add a unit test for the retry path.
 - L44-L46 (new): Why is the timeout hardcoded?
-  > - const timeout = 3000;
-  > - await refresh(token, timeout);
+  > +    const timeout = 3000;
+  > +    await refresh(token, timeout);
 ```
 
-With `--json`, an object `{ "title": ..., "comments": [...] }` where each line comment carries an
-`excerpt` array with the referenced diff lines. No comments prints `No review comments.`
+Comments on a text selection in the summary start with `On "<selected text>":`. With `--json`, an
+object `{ "title": ..., "comments": [...] }` where each line comment carries an `excerpt` array
+with the referenced diff lines and selection comments carry the quote and its offsets in the
+target. No comments prints `No review comments.`
 
 ## Claude Code skill
 

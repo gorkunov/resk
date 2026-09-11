@@ -56,6 +56,15 @@ export function CommentCard({ comment }: { comment: Comment }) {
               </button>
             </span>
           </div>
+          {comment.target.kind === 'summary-selection' && (
+            <p
+              data-testid="comment-quote"
+              title={comment.target.quote}
+              className="mb-1 truncate border-l-2 border-amber-400 pl-2 text-xs italic text-neutral-600 dark:text-neutral-400"
+            >
+              {comment.target.quote}
+            </p>
+          )}
           <p className="whitespace-pre-wrap font-sans leading-5">{comment.body}</p>
         </>
       )}

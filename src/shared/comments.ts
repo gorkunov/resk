@@ -8,11 +8,26 @@ function isPositiveInt(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 1;
 }
 
+function isNonNegativeInt(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+/** True for comments on the summary as a whole or on a selection in it. */
+export function isSummaryTarget(target: CommentTarget): boolean {
+  return target.kind === 'summary' || target.kind === 'summary-selection';
+}
+
 function validateTarget(value: unknown): CommentTarget | undefined {
   if (!isRecord(value)) return undefined;
   switch (value.kind) {
     case 'summary':
       return { kind: 'summary' };
+    case 'summary-selection': {
+      const { quote, start, end } = value;
+      if (typeof quote !== 'string') return undefined;
+      if (!isNonNegativeInt(start) || !isNonNegativeInt(end) || end <= start) return undefined;
+      return { kind: 'summary-selection', quote, start, end };
+    }
     case 'file':
       return typeof value.path === 'string' ? { kind: 'file', path: value.path } : undefined;
     case 'lines': {
@@ -57,12 +72,22 @@ export function countComments(comments: Comment[]): {
   const files = new Set<string>();
   let summary = 0;
   for (const c of comments) {
-    if (c.target.kind === 'summary') summary++;
+    if (c.target.kind === 'summary' || c.target.kind === 'summary-selection') summary++;
     else files.add(c.target.path);
   }
   return { total: comments.length, files: files.size, summary };
 }
 
 export function commentsForPath(comments: Comment[], path: string): Comment[] {
-  return comments.filter((c) => c.target.kind !== 'summary' && c.target.path === path);
+  return comments.filter(
+    (c) => (c.target.kind === 'file' || c.target.kind === 'lines') && c.target.path === path,
+  );
+}
+
+/** Selection comments whose range covers the given offset in the rendered summary text. */
+export function summarySelectionsAt(comments: Comment[], offset: number): Comment[] {
+  return comments.filter(
+    (c) =>
+      c.target.kind === 'summary-selection' && c.target.start <= offset && offset < c.target.end,
+  );
 }

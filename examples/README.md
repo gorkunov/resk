@@ -31,7 +31,10 @@ node dist/cli/index.js --summary examples/summary.md --diff examples/changes.pat
 2. Open several files. Panels stay in diff order no matter what you clicked first. Close one with ×.
 3. Click a line number, or drag across several, and leave a comment. The highlight and the file row
    get a dot, and the panel header shows a count.
-4. Use **Comment** in a panel header for a whole-file note, and **Comment on summary** in the top bar.
+4. Use **Comment** in a panel header for a whole-file note. On the summary, select any text: a
+   **Comment** button appears and the comment is anchored to that text, which stays underlined.
+   Click underlined text to see or delete its comments. **Comment on summary** in the top bar is
+   for a general note.
 5. Toggle **Unified/Split** and the theme button.
 6. Click **Finish review**. The terminal where you started resk prints the comments as Markdown and
    the process exits. Add `-- --json` to `npm run example` to get JSON instead.

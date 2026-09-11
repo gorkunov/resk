@@ -10,7 +10,9 @@ interface SummaryCommentsProps {
 
 export function SummaryComments({ composerOpen, onCloseComposer }: SummaryCommentsProps) {
   const { state, dispatch } = useStore();
-  const comments = state.comments.filter((c) => c.target.kind === 'summary');
+  const comments = state.comments.filter(
+    (c) => c.target.kind === 'summary' || c.target.kind === 'summary-selection',
+  );
   if (comments.length === 0 && !composerOpen) return null;
 
   return (

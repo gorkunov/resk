@@ -15,12 +15,21 @@ function lineKey(c: Comment): [number, number, number] {
 /** Summary comments first, then files in diff order (unknown paths last, alphabetically). */
 export function orderComments(comments: Comment[], files: FileChange[]): Comment[] {
   const summary = comments.filter((c) => c.target.kind === 'summary').sort(byCreated);
+  const selections = comments
+    .filter((c) => c.target.kind === 'summary-selection')
+    .sort((a, b) => {
+      const ta = a.target as { start: number; end: number };
+      const tb = b.target as { start: number; end: number };
+      return ta.start - tb.start || ta.end - tb.end || byCreated(a, b);
+    });
   const paths = new Set<string>();
-  for (const c of comments) if (c.target.kind !== 'summary') paths.add(c.target.path);
+  for (const c of comments) {
+    if (c.target.kind === 'file' || c.target.kind === 'lines') paths.add(c.target.path);
+  }
   const known = files.map((f) => f.path).filter((p) => paths.has(p));
   const unknown = [...paths].filter((p) => !known.includes(p)).sort();
 
-  const ordered: Comment[] = [...summary];
+  const ordered: Comment[] = [...summary, ...selections];
   for (const path of [...known, ...unknown]) {
     const fileComments = comments
       .filter((c) => c.target.kind === 'file' && c.target.path === path)
@@ -65,13 +74,19 @@ export function formatReviewMarkdown(comments: Comment[], files: FileChange[]): 
 
   let section: string | undefined;
   for (const c of ordered) {
-    const heading = c.target.kind === 'summary' ? 'Summary' : c.target.path;
+    const heading =
+      c.target.kind === 'summary' || c.target.kind === 'summary-selection'
+        ? 'Summary'
+        : c.target.path;
     if (heading !== section) {
       section = heading;
       lines.push('', `## ${heading}`);
     }
     if (c.target.kind === 'summary') {
       lines.push(...bullet('', c.body));
+    } else if (c.target.kind === 'summary-selection') {
+      const quote = c.target.quote.replace(/\s*\n\s*/g, ' ').trim();
+      lines.push(...bullet(`On "${quote}": `, c.body));
     } else if (c.target.kind === 'file') {
       lines.push(...bullet('(file) ', c.body));
     } else {

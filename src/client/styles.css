@@ -73,3 +73,12 @@ body {
 .summary-markdown hr {
   @apply my-6 border-neutral-200 dark:border-neutral-800;
 }
+
+/* Underlines for summary text that carries a comment (CSS Custom Highlight API). */
+::highlight(resk-comment) {
+  background-color: rgb(251 191 36 / 0.22);
+  text-decoration: underline;
+  text-decoration-color: rgb(217 119 6);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}

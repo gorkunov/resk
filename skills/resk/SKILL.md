@@ -78,20 +78,23 @@ Renamed helpers in [utils/time.ts](diff:src/utils/time.ts); test updates in `tes
 
 ## Output you will receive
 
-```markdown
-# Review comments (3)
+```text
+# Review comments (4)
 
 ## Summary
-
 - Split this into two PRs; the migration should ship first.
+- On "rate-limited endpoint": Which limit applies to the retry path?
 
 ## src/services/user.ts
-
 - (file) Please add a unit test for the retry path.
 - L44-L46 (new): Why is the timeout hardcoded?
-  > - const timeout = 3000;
-  > - await refresh(token, timeout);
+  > +    const timeout = 3000;
+  > +    await refresh(token, timeout);
 ```
+
+Summary comments come in two forms: general ones, and ones anchored to a text selection, written
+as `On "<selected text>": <comment>`. Treat the quoted text as the part of your summary the user is
+reacting to.
 
 ## Constraints
 

@@ -73,6 +73,36 @@ describe('formatReviewMarkdown', () => {
     );
   });
 
+  it('prints summary selections after general summary comments, ordered by offset, with the quote', () => {
+    const comments = [
+      comment(
+        { kind: 'summary-selection', quote: 'rate limit', start: 40, end: 50 },
+        'Which limit?',
+      ),
+      comment({ kind: 'summary' }, 'Overall fine.'),
+      comment(
+        {
+          kind: 'summary-selection',
+          quote: 'Token refresh moved\nto the server',
+          start: 0,
+          end: 33,
+        },
+        'Is this the whole story?',
+      ),
+    ];
+    expect(formatReviewMarkdown(comments, files)).toBe(
+      [
+        '# Review comments (3)',
+        '',
+        '## Summary',
+        '- Overall fine.',
+        '- On "Token refresh moved to the server": Is this the whole story?',
+        '- On "rate limit": Which limit?',
+        '',
+      ].join('\n'),
+    );
+  });
+
   it('orders line comments with the same start line new before old', () => {
     const comments = [
       comment(
@@ -118,6 +148,20 @@ describe('formatReviewJson', () => {
     expect(parsed.title).toBe('feature vs main');
     expect(parsed.comments.map((c: { body: string }) => c.body)).toEqual(['overall', 'timeout']);
     expect(parsed.comments[0]).not.toHaveProperty('excerpt');
+    const selection = JSON.parse(
+      formatReviewJson(
+        't',
+        [comment({ kind: 'summary-selection', quote: 'q', start: 0, end: 1 }, 'b')],
+        files,
+      ),
+    );
+    expect(selection.comments[0].target).toEqual({
+      kind: 'summary-selection',
+      quote: 'q',
+      start: 0,
+      end: 1,
+    });
+    expect(selection.comments[0]).not.toHaveProperty('excerpt');
     expect(parsed.comments[1].excerpt).toEqual([
       '+    const timeout = 3000;',
       '+    await refresh(token, timeout);',
