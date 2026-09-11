@@ -75,5 +75,9 @@
     "claude",
     "cli",
     "react"
-  ]
+  ],
+  "allowScripts": {
+    "esbuild": true,
+    "fsevents": false
+  }
 }

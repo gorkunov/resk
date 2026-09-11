@@ -131,7 +131,10 @@ change and continues with the comments it gets back.
 
 ## Development
 
+The toolchain is pinned in `.tool-versions` (Node 26, npm 12); `mise install` sets it up.
+
 ```bash
+mise install
 npm install
 npm run check          # typecheck, lint, unit tests, build, acceptance tests
 npm test               # unit tests (Vitest)
