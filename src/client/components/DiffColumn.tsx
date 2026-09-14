@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../state/store.jsx';
 import { scrollPanelIntoFocus } from '../focus-scroll.js';
+import { pulseFocus } from '../pulse.js';
 import { DiffPanel } from './DiffPanel.jsx';
 
 export function DiffColumn() {
@@ -17,10 +18,26 @@ export function DiffColumn() {
     if (!panel) return;
     const scroller = content.closest<HTMLElement>('[data-testid="diff-column"]') ?? content;
     const focus = state.panels.find((p) => p.path === target.path)?.focus;
-    return scrollPanelIntoFocus(scroller, content, panel, focus);
+    const stopScroll = scrollPanelIntoFocus(scroller, content, panel, focus);
+    const stopPulse = focus ? pulseFocus(panel, focus) : undefined;
+    return () => {
+      stopScroll();
+      stopPulse?.();
+    };
     // Only re-run when a new scroll is requested (nonce changes).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.nonce]);
+
+  if (state.panels.length === 0) {
+    return (
+      <div
+        data-testid="diff-column-empty"
+        className="grid h-full place-items-center p-8 text-center text-sm text-neutral-500"
+      >
+        No files open. Click a highlight in the summary to open one.
+      </div>
+    );
+  }
 
   return (
     <div ref={contentRef} className="flex flex-col gap-4 p-4">

@@ -115,7 +115,7 @@ export function DiffPanel({ file, panel }: DiffPanelProps) {
       lineDiffType: 'word' as const,
       hunkSeparators: 'line-info' as const,
       overflow: 'scroll' as const,
-      lineHoverHighlight: 'number' as const,
+      lineHoverHighlight: 'both' as const,
       enableLineSelection: true,
       onLineNumberClick: (props: { lineNumber: number; annotationSide: AnnotationSide }) => {
         startDraft(fromSelectionSide(props.annotationSide), props.lineNumber, props.lineNumber);
@@ -130,7 +130,8 @@ export function DiffPanel({ file, panel }: DiffPanelProps) {
     [panel.diffStyle, state.theme, startDraft],
   );
 
-  const selectedLines = toSelectedLines(draft ?? panel.focus);
+  // Only a comment draft keeps lines selected; a focused range pulses instead (see pulse.ts).
+  const selectedLines = toSelectedLines(draft);
 
   return (
     <article

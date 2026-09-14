@@ -28,6 +28,11 @@ export interface Viewed {
 export interface AppState {
   /** Open panels, always in diff order. */
   panels: PanelState[];
+  /**
+   * True once a panel has been opened. The summary-only layout never comes back, so closing the
+   * last panel does not move the summary around under the reviewer.
+   */
+  splitLayout: boolean;
   viewed: Viewed;
   /** Panel the diff column should scroll to; the nonce changes on every request. */
   scrollTarget?: { path: string; nonce: number };
@@ -49,6 +54,7 @@ export type Action =
 
 export const initialState: AppState = {
   panels: [],
+  splitLayout: false,
   viewed: { paths: [], anchors: [] },
   theme: 'system',
   comments: [],
@@ -99,6 +105,7 @@ export function reduce(state: AppState, action: Action, order: string[]): AppSta
       return {
         ...state,
         panels,
+        splitLayout: true,
         scrollTarget: { path: action.path, nonce },
         viewed: markViewed(state.viewed, action.path, action.anchorKey),
       };

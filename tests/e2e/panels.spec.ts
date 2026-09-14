@@ -86,7 +86,6 @@ test.describe('diff panels', () => {
 
     await panelFor(page, 'src/services/user.ts').getByTestId('panel-close').click();
     await expect(panels(page)).toHaveCount(0);
-    await expect(page.getByTestId('diff-column')).toHaveCount(0);
     await expect(page.getByTestId('layout')).toHaveAttribute('data-panels', '0');
     await expect(highlight(page, 'UserService')).toHaveAttribute('data-state', 'reviewed');
   });
@@ -232,6 +231,42 @@ test.describe('focus scrolling', () => {
     } finally {
       await resk.kill();
     }
+  });
+
+  test('a focused range pulses instead of staying selected', async ({ page, resk }) => {
+    await page.goto(resk.url);
+    await highlight(page, 'UserService').click();
+    const panel = panelFor(page, 'src/services/user.ts');
+
+    await expect
+      .poll(() =>
+        panel
+          .locator('[data-line][data-resk-pulse]')
+          .first()
+          .evaluate((el) => el.getAnimations().length)
+          .catch(() => 0),
+      )
+      .toBeGreaterThan(0);
+    // The gutter number pulses with its line.
+    await expect(panel.locator('[data-column-number][data-resk-pulse]').first()).toBeAttached();
+
+    await expect(panel.locator('[data-resk-pulse]')).toHaveCount(0, { timeout: 5000 });
+    await expect(panel.locator('[data-selected-line]')).toHaveCount(0);
+    await expect(panel).toHaveAttribute('data-focus', 'new:13-19');
+  });
+
+  test('hovering the code highlights the whole line, not just the number', async ({
+    page,
+    resk,
+  }) => {
+    await page.goto(resk.url);
+    await highlight(page, 'UserService').click();
+    const panel = panelFor(page, 'src/services/user.ts');
+    const line = panel.locator('[data-line]').filter({ hasText: 'async refreshSession' }).first();
+    await line.hover();
+    await expect(line).toHaveAttribute('data-hovered', '');
+    await panel.getByTestId('panel-header').hover();
+    await expect(line).not.toHaveAttribute('data-hovered', '');
   });
 
   test('split view focuses the right side of the diff', async ({ page, resk }) => {

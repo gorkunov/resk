@@ -30,6 +30,15 @@ describe('panels', () => {
     expect(initialState.scrollTarget).toBeUndefined();
   });
 
+  it('switches to the split layout on the first panel and never switches back', () => {
+    expect(initialState.splitLayout).toBe(false);
+    let state = open(initialState, 'a.ts');
+    expect(state.splitLayout).toBe(true);
+    state = reduce(state, { type: 'closePanel', path: 'a.ts' }, ORDER);
+    expect(state.panels).toEqual([]);
+    expect(state.splitLayout).toBe(true);
+  });
+
   it('keeps panels in diff order regardless of the order they were opened', () => {
     let state = open(initialState, 'c.ts');
     state = open(state, 'a.ts');

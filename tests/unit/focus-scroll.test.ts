@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   findLineElement,
+  focusRowElements,
   nearestLineElement,
   renderedLines,
 } from '../../src/client/focus-scroll.js';
@@ -9,6 +10,15 @@ import {
 function line(type: string, lineNo: number, alt?: number, text = ''): string {
   const altAttr = alt === undefined ? '' : ` data-alt-line="${alt}"`;
   return `<div data-line-type="${type}" data-line="${lineNo}"${altAttr}>${text}</div>`;
+}
+
+function indexed(type: string, lineNo: number, alt: number | undefined, index: string): string {
+  const altAttr = alt === undefined ? '' : ` data-alt-line="${alt}"`;
+  return `<div data-line-type="${type}" data-line="${lineNo}"${altAttr} data-line-index="${index}"></div>`;
+}
+
+function gutterIndexed(lineNo: number, index: string): string {
+  return `<div data-line-type="context" data-column-number="${lineNo}" data-line-index="${index}"></div>`;
 }
 
 function gutter(lineNo: number): string {
@@ -91,5 +101,27 @@ describe('split view', () => {
     const newEight = findLineElement(panel, 'new', 8)!;
     expect([newEight.dataset.line, newEight.dataset.altLine]).toContain('8');
     expect(findLineElement(panel, 'new', 5)).toBeUndefined();
+  });
+});
+
+describe('focus rows', () => {
+  beforeEach(() => {
+    mount(
+      `<pre><code data-code="">
+        <div data-gutter="">${gutterIndexed(1, '0,0')}${gutterIndexed(2, '1,1')}${gutterIndexed(3, '2,2')}</div>
+        <div data-content="">${indexed('context', 1, undefined, '0,0')}${indexed('change-addition', 2, undefined, '1,1')}${indexed('change-addition', 3, undefined, '2,2')}</div>
+      </code></pre>`,
+    );
+  });
+
+  it('collects each focused code line together with its gutter number', () => {
+    const rows = focusRowElements(panel, 'new', 2, 3);
+    expect(rows.map((el) => el.dataset.lineIndex)).toEqual(['1,1', '1,1', '2,2', '2,2']);
+    expect(rows.filter((el) => el.hasAttribute('data-column-number'))).toHaveLength(2);
+  });
+
+  it('is empty when the focused lines are not rendered', () => {
+    expect(focusRowElements(panel, 'new', 90, 95)).toEqual([]);
+    expect(focusRowElements(panel, 'old', 1, 3)).toEqual([]);
   });
 });

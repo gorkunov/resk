@@ -26,10 +26,16 @@ export function Layout({ onFinished }: { onFinished: () => void }) {
       });
   }, [onFinished]);
   const panelCount = state.panels.length;
-  const hasPanels = panelCount > 0;
+  // One-way switch: once the code pane is in, the summary stays where the reviewer left it.
+  const split = state.splitLayout;
 
   return (
-    <div className="flex h-full flex-col" data-testid="layout" data-panels={panelCount}>
+    <div
+      className="flex h-full flex-col"
+      data-testid="layout"
+      data-panels={panelCount}
+      data-layout={split ? 'split' : 'summary'}
+    >
       <TopBar onFinish={finish} finishing={finishing} />
       {syncError && (
         <div
@@ -50,17 +56,18 @@ export function Layout({ onFinished }: { onFinished: () => void }) {
       )}
       <div className="flex min-h-0 flex-1">
         <div
+          data-testid="summary-column"
           className={
-            hasPanels
-              ? 'w-[440px] shrink-0 overflow-y-auto border-r border-neutral-200 transition-[width] duration-200 dark:border-neutral-800'
+            split
+              ? 'w-[clamp(420px,40vw,600px)] shrink-0 overflow-y-auto border-r border-neutral-200 transition-[width] duration-200 dark:border-neutral-800'
               : 'w-full overflow-y-auto transition-[width] duration-200'
           }
         >
-          <div className={hasPanels ? 'px-6 py-6' : 'mx-auto max-w-3xl px-6 py-10'}>
+          <div className={split ? 'px-6 py-6' : 'mx-auto max-w-3xl px-6 py-10'}>
             <SummaryPane />
           </div>
         </div>
-        {hasPanels && (
+        {split && (
           <div
             className="min-w-0 flex-1 overflow-y-auto bg-neutral-50 dark:bg-neutral-900/40"
             data-testid="diff-column"

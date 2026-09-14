@@ -105,6 +105,10 @@ resolve are reported as warnings on stderr at startup and rendered as inert chip
 Below the summary resk always lists every changed file with its stats, so the summary does not need
 to enumerate files.
 
+Clicking a highlight opens that file in the code pane on the right and flashes the linked lines;
+the flash fades so it never sits on top of the code you are reading. The pane stays once it opens,
+even after you close every file, and the summary column grows with the window up to 600 px.
+
 ## Output
 
 Markdown by default:

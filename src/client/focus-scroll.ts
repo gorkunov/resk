@@ -99,6 +99,42 @@ export function nearestLineElement(
   return best.el;
 }
 
+/**
+ * Gutter number element that belongs to a rendered code line. Both carry the same
+ * `data-line-index` ("<row>,<line>"), and each column holds its own gutter, so the search stays
+ * inside the line's own `[data-code]` container.
+ */
+function gutterFor(line: HTMLElement): HTMLElement | undefined {
+  const index = line.dataset.lineIndex;
+  if (index === undefined || !/^[\d,]+$/.test(index)) return undefined;
+  const column = line.closest('[data-code]');
+  const gutter = column?.querySelector<HTMLElement>(
+    `[data-column-number][data-line-index="${index}"]`,
+  );
+  return gutter ?? undefined;
+}
+
+/**
+ * The elements that make up the rows of a focused range: each rendered code line preceded by its
+ * gutter number. Empty when the range is not rendered (a range between hunks, for example).
+ */
+export function focusRowElements(
+  panel: HTMLElement,
+  side: Side,
+  start: number,
+  end: number,
+): HTMLElement[] {
+  const rows: HTMLElement[] = [];
+  for (const line of renderedLines(panel)) {
+    const number = sideNumber(line, side);
+    if (number === undefined || number < start || number > end) continue;
+    const gutter = gutterFor(line.el);
+    if (gutter) rows.push(gutter);
+    rows.push(line.el);
+  }
+  return rows;
+}
+
 const SETTLE_MS = 2500;
 const MAX_WAIT_MS = 8000;
 

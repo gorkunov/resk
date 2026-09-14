@@ -26,10 +26,11 @@ node dist/cli/index.js --summary examples/summary.md --diff examples/changes.pat
 ## Things to try
 
 1. Read the summary and click a highlight such as **UserService.refreshSession()**. The panel opens
-   on the right with the linked lines outlined, and the highlight turns green to mark it as reviewed
+   on the right, the linked lines flash and then fade, and the highlight turns green to mark it as reviewed
    (that survives a reload). Click **hardcodes `max: 10`** in the same file group
    to see the panel reused and scrolled.
-2. Open several files. Panels stay in diff order no matter what you clicked first. Close one with ×.
+2. Open several files. Panels stay in diff order no matter what you clicked first. Close one with ×;
+   closing all of them keeps the two-pane layout so the summary stays put.
 3. Click a line number, or drag across several, and leave a comment. The highlight and the file row
    get a dot, and the panel header shows a count.
 4. Use **Comment** in a panel header for a whole-file note. On the summary, select any text: a
