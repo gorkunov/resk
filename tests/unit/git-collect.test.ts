@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { collectDiff, findRepoRoot } from '../../src/cli/git.js';
+import { collectDiff, findRepoRoot, readContent } from '../../src/cli/git.js';
 import { buildGitPlan } from '../../src/cli/git-plan.js';
 import { parseUnifiedDiff } from '../../src/shared/diff-parser.js';
 
@@ -107,5 +107,29 @@ describe('collectDiff', () => {
     await expect(
       collectDiff(buildGitPlan('does-not-exist', undefined, { untracked: true }), repo),
     ).rejects.toThrow(/does-not-exist/);
+  });
+});
+
+describe('readContent', () => {
+  it('reads a tracked file from a revision, the index and the work tree', async () => {
+    const worktree = await readContent({ kind: 'worktree' }, 'a.txt', repo);
+    expect(worktree).toBe('one\n2\nthree\nfour\nfive\n');
+    expect(await readContent({ kind: 'index' }, 'a.txt', repo)).toBe('one\n2\nthree\nfour\n');
+    expect(await readContent({ kind: 'rev', rev: 'HEAD' }, 'a.txt', repo)).toBe('one\n2\nthree\n');
+    expect(await readContent({ kind: 'rev', rev: 'main' }, 'a.txt', repo)).toBe('one\n2\n');
+  });
+
+  it('returns undefined when the file is absent from that source', async () => {
+    expect(await readContent({ kind: 'worktree' }, 'nope.txt', repo)).toBeUndefined();
+    expect(await readContent({ kind: 'rev', rev: 'HEAD' }, 'new/fresh.txt', repo)).toBeUndefined();
+    expect(await readContent({ kind: 'rev', rev: 'nosuchref' }, 'a.txt', repo)).toBeUndefined();
+  });
+
+  it('returns undefined for binary content', async () => {
+    expect(await readContent({ kind: 'worktree' }, 'blob.bin', repo)).toBeUndefined();
+  });
+
+  it('never escapes the repository', async () => {
+    expect(await readContent({ kind: 'worktree' }, '../outside.txt', repo)).toBeUndefined();
   });
 });

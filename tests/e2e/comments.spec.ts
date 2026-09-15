@@ -52,11 +52,9 @@ test.describe('comments', () => {
     const panel = await openUserPanel(page);
     const from = panel.locator('[data-column-number="18"]').first();
     const to = panel.locator('[data-column-number="19"]').first();
-    const a = (await from.boundingBox())!;
-    const b = (await to.boundingBox())!;
-    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+    await from.hover();
     await page.mouse.down();
-    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 5 });
+    await to.hover();
     await page.mouse.up();
 
     const composer = panel.getByTestId('comment-composer');

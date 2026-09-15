@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { viewedStorageKey } from '../../src/client/state/viewed-storage.js';
 import type { ReviewPayload } from '../../src/shared/types.js';
 
-const base: ReviewPayload = { title: 'demo', summary: '# S', files: [] };
+const base: ReviewPayload = { title: 'demo', summary: '# S', files: [], expandable: false };
 
 describe('viewedStorageKey', () => {
   it('is stable for the same review', () => {

@@ -106,8 +106,13 @@ Below the summary resk always lists every changed file with its stats, so the su
 to enumerate files.
 
 Clicking a highlight opens that file in the code pane on the right and flashes the linked lines;
-the flash fades so it never sits on top of the code you are reading. The pane stays once it opens,
-even after you close every file, and the summary column grows with the window up to 600 px.
+the flash fades so it never sits on top of the code you are reading. A file opens directly below
+the one you are reading rather than in diff order. The pane stays once it opens, even after you
+close every file, and the summary column grows with the window up to 600 px.
+
+Between hunks the pane shows how many unmodified lines are hidden, with controls that reveal 20 at
+a time. This needs the files themselves, so it works for git reviews; a review of a patch file
+(`--diff`) shows only what the patch contains.
 
 ## Output
 

@@ -29,14 +29,15 @@ node dist/cli/index.js --summary examples/summary.md --diff examples/changes.pat
    on the right, the linked lines flash and then fade, and the highlight turns green to mark it as reviewed
    (that survives a reload). Click **hardcodes `max: 10`** in the same file group
    to see the panel reused and scrolled.
-2. Open several files. Panels stay in diff order no matter what you clicked first. Close one with ×;
+2. Open several files. Each one opens right below the file you were reading. Close one with ×;
    closing all of them keeps the two-pane layout so the summary stays put.
 3. Click a line number, or drag across several, and leave a comment. The highlight and the file row
    get a dot, and the panel header shows a count.
 4. Use **Comment** in a panel header for a whole-file note. On the summary, select any text: a
    **Comment** button appears and the comment is anchored to that text, which stays underlined.
    Click underlined text to see, edit or delete its comments.
-5. Toggle **Unified/Split** and the theme button.
+5. Toggle **Unified/Split** and the theme button. (Expanding the unmodified lines between hunks
+   needs the real files, so it works on a git review rather than this bundled patch.)
 6. Click **Finish review**. The tab closes, the terminal where you started resk prints the comments
    as Markdown, and the process exits. Add `-- --json` to `npm run example` to get JSON instead.
 

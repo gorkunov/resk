@@ -5,9 +5,42 @@ import { pulseFocus } from '../pulse.js';
 import { DiffPanel } from './DiffPanel.jsx';
 
 export function DiffColumn() {
-  const { review, state } = useStore();
+  const { review, state, dispatch } = useStore();
   const contentRef = useRef<HTMLDivElement>(null);
   const target = state.scrollTarget;
+
+  // Follow the panel the reviewer scrolls to: the next file they open lands right below it.
+  useEffect(() => {
+    const content = contentRef.current;
+    const scroller = content?.closest<HTMLElement>('[data-testid="diff-column"]');
+    if (!content || !scroller) return;
+    let frame = 0;
+    const update = (): void => {
+      frame = 0;
+      // Nothing to scroll: every panel is on screen, so the one just opened is still the subject.
+      if (scroller.scrollHeight <= scroller.clientHeight + 1) return;
+      const view = scroller.getBoundingClientRect();
+      let best: string | undefined;
+      let bestHeight = 0;
+      for (const el of content.querySelectorAll<HTMLElement>('[data-testid="panel"]')) {
+        const rect = el.getBoundingClientRect();
+        const height = Math.min(rect.bottom, view.bottom) - Math.max(rect.top, view.top);
+        if (height > bestHeight) {
+          bestHeight = height;
+          best = el.dataset.path;
+        }
+      }
+      dispatch({ type: 'setVisiblePanel', path: best });
+    };
+    const onScroll = (): void => {
+      if (frame === 0) frame = requestAnimationFrame(update);
+    };
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      scroller.removeEventListener('scroll', onScroll);
+      if (frame !== 0) cancelAnimationFrame(frame);
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     const content = contentRef.current;

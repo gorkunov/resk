@@ -71,6 +71,7 @@ export function Layout({ onFinished }: { onFinished: () => void }) {
           <div
             className="min-w-0 flex-1 overflow-y-auto bg-neutral-50 dark:bg-neutral-900/40"
             data-testid="diff-column"
+            data-visible={state.visiblePath}
           >
             <DiffColumn />
           </div>

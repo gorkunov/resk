@@ -33,6 +33,8 @@ export interface AppState {
    * last panel does not move the summary around under the reviewer.
    */
   splitLayout: boolean;
+  /** Panel the reviewer is looking at; a newly opened file lands right below it. */
+  visiblePath?: string;
   viewed: Viewed;
   /** Panel the diff column should scroll to; the nonce changes on every request. */
   scrollTarget?: { path: string; nonce: number };
@@ -42,6 +44,7 @@ export interface AppState {
 
 export type Action =
   | { type: 'openPanel'; path: string; range?: Range; anchorKey?: string }
+  | { type: 'setVisiblePanel'; path: string | undefined }
   | { type: 'hydrateViewed'; viewed: Viewed }
   | { type: 'closePanel'; path: string }
   | { type: 'setDiffStyle'; path: string; diffStyle: DiffStyle }
@@ -66,11 +69,6 @@ export function nextTheme(theme: Theme): Theme {
   return THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length]!;
 }
 
-function rank(path: string, order: string[]): number {
-  const index = order.indexOf(path);
-  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
-}
-
 function addUnique(list: string[], value: string | undefined): string[] {
   return value === undefined || list.includes(value) ? list : [...list, value];
 }
@@ -81,12 +79,22 @@ function markViewed(viewed: Viewed, path: string, anchorKey: string | undefined)
   return paths === viewed.paths && anchors === viewed.anchors ? viewed : { paths, anchors };
 }
 
-function sortPanels(panels: PanelState[], order: string[]): PanelState[] {
-  return [...panels].sort((a, b) => rank(a.path, order) - rank(b.path, order));
+/**
+ * A new panel goes directly below the one in view, so the file you just opened is the next thing
+ * you read. With nothing in view it goes to the bottom.
+ */
+function insertPanel(
+  panels: PanelState[],
+  panel: PanelState,
+  visiblePath: string | undefined,
+): PanelState[] {
+  const index = visiblePath === undefined ? -1 : panels.findIndex((p) => p.path === visiblePath);
+  if (index === -1) return [...panels, panel];
+  return [...panels.slice(0, index + 1), panel, ...panels.slice(index + 1)];
 }
 
-/** Pure state transition. `order` is the list of display paths in diff order. */
-export function reduce(state: AppState, action: Action, order: string[]): AppState {
+/** Pure state transition. */
+export function reduce(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'openPanel': {
       const nonce = (state.scrollTarget?.nonce ?? 0) + 1;
@@ -100,15 +108,23 @@ export function reduce(state: AppState, action: Action, order: string[]): AppSta
       } else {
         const created: PanelState = { path: action.path, diffStyle: 'unified' };
         if (action.range) created.focus = { ...action.range, nonce };
-        panels = sortPanels([...state.panels, created], order);
+        panels = insertPanel(state.panels, created, state.visiblePath);
       }
       return {
         ...state,
         panels,
         splitLayout: true,
+        visiblePath: action.path,
         scrollTarget: { path: action.path, nonce },
         viewed: markViewed(state.viewed, action.path, action.anchorKey),
       };
+    }
+    case 'setVisiblePanel': {
+      if (state.visiblePath === action.path) return state;
+      const next = { ...state };
+      if (action.path === undefined) delete next.visiblePath;
+      else next.visiblePath = action.path;
+      return next;
     }
     case 'hydrateViewed':
       return { ...state, viewed: action.viewed };

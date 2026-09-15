@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 
 /** Selects `text` inside the rendered summary with a real mouse drag. */
 export async function selectText(page: Page, text: string) {
+  await page.locator('[data-testid="summary-markdown"]').waitFor();
   const points = await page.evaluate((needle) => {
     const root = document.querySelector('[data-testid="summary-markdown"]');
     if (!root) throw new Error('summary-markdown not found');

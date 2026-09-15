@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { PatchDiff, type DiffLineAnnotation, type SelectedLineRange } from '@pierre/diffs/react';
+import {
+  PatchDiff,
+  type DiffLineAnnotation,
+  type FileDiffLoadedFiles,
+  type FileDiffMetadata,
+  type SelectedLineRange,
+} from '@pierre/diffs/react';
 import type { Comment, FileChange, Side } from '../../shared/types.js';
 import { commentsForPath } from '../../shared/comments.js';
+import { fetchFileContents } from '../api.js';
 import { newComment, targetLabel } from '../comment-utils.js';
 import { useStore } from '../state/store.jsx';
 import type { Focus, PanelState, Range } from '../state/reducer.js';
@@ -10,6 +17,9 @@ import { CommentCard } from './CommentCard.jsx';
 import { CommentComposer } from './CommentComposer.jsx';
 
 const THEMES = { light: 'github-light', dark: 'github-dark' } as const;
+
+/** How many unmodified lines one click of an expand control reveals. */
+const EXPANSION_LINES = 20;
 
 type AnnotationSide = 'additions' | 'deletions';
 
@@ -39,7 +49,7 @@ interface DiffPanelProps {
 }
 
 export function DiffPanel({ file, panel }: DiffPanelProps) {
-  const { state, dispatch } = useStore();
+  const { review, state, dispatch } = useStore();
   const [draft, setDraft] = useState<Range | undefined>(undefined);
   const [fileComposerOpen, setFileComposerOpen] = useState(false);
 
@@ -106,9 +116,24 @@ export function DiffPanel({ file, panel }: DiffPanelProps) {
     setDraft({ side, start: Math.min(start, end), end: Math.max(start, end) });
   }, []);
 
+  // The patch only carries the changed lines, so expanding context needs the files themselves.
+  const loadDiffFiles = useCallback(
+    async (meta: FileDiffMetadata): Promise<FileDiffLoadedFiles> => {
+      const contents = await fetchFileContents(file.path);
+      if (contents.new === null) throw new Error(`no contents for ${file.path}`);
+      const newFile = { name: meta.name, contents: contents.new };
+      if (contents.old === null) return { oldFile: null, newFile };
+      return { oldFile: { name: meta.prevName ?? meta.name, contents: contents.old }, newFile };
+    },
+    [file.path],
+  );
+
+  const expandable = review.expandable;
   const options = useMemo(
     () => ({
       diffStyle: panel.diffStyle,
+      expansionLineCount: EXPANSION_LINES,
+      ...(expandable ? { loadDiffFiles } : {}),
       theme: THEMES,
       themeType: state.theme,
       disableFileHeader: true,
@@ -127,7 +152,7 @@ export function DiffPanel({ file, panel }: DiffPanelProps) {
         startDraft(fromSelectionSide(range.side), range.start, range.end);
       },
     }),
-    [panel.diffStyle, state.theme, startDraft],
+    [panel.diffStyle, state.theme, startDraft, expandable, loadDiffFiles],
   );
 
   // Only a comment draft keeps lines selected; a focused range pulses instead (see pulse.ts).

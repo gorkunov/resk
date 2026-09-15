@@ -1,3 +1,6 @@
+/** Where the full text of a file version comes from, for expanding unmodified context. */
+export type ContentSource = { kind: 'worktree' } | { kind: 'index' } | { kind: 'rev'; rev: string };
+
 export interface GitPlan {
   /** Arguments for the main `git` invocation (without the `git` executable). */
   args: string[];
@@ -7,6 +10,8 @@ export interface GitPlan {
   title: string;
   /** Context lines, when the user asked for a specific amount. */
   context?: number;
+  /** The two file versions this diff compares, so the client can expand context. */
+  sources: { old: ContentSource; new: ContentSource };
 }
 
 export interface GitPlanOptions {
@@ -43,11 +48,22 @@ export function buildGitPlan(
         args: diff('HEAD'),
         includeUntracked: options.untracked,
         title: 'Working tree vs HEAD',
+        sources: { old: { kind: 'rev', rev: 'HEAD' }, new: { kind: 'worktree' } },
       };
     } else if (t === 'staged') {
-      plan = { args: diff('--cached'), includeUntracked: false, title: 'Staged changes' };
+      plan = {
+        args: diff('--cached'),
+        includeUntracked: false,
+        title: 'Staged changes',
+        sources: { old: { kind: 'rev', rev: 'HEAD' }, new: { kind: 'index' } },
+      };
     } else if (t === 'working') {
-      plan = { args: diff(), includeUntracked: options.untracked, title: 'Unstaged changes' };
+      plan = {
+        args: diff(),
+        includeUntracked: options.untracked,
+        title: 'Unstaged changes',
+        sources: { old: { kind: 'index' }, new: { kind: 'worktree' } },
+      };
     } else {
       const r = ref(t);
       plan = {
@@ -63,6 +79,8 @@ export function buildGitPlan(
         ],
         includeUntracked: false,
         title: `Commit ${r}`,
+        // A root commit has no parent; the old side then simply has no contents to expand.
+        sources: { old: { kind: 'rev', rev: `${r}^` }, new: { kind: 'rev', rev: r } },
       };
     }
   } else {
@@ -72,18 +90,25 @@ export function buildGitPlan(
         args: diff(base),
         includeUntracked: options.untracked,
         title: `Working tree vs ${base}`,
+        sources: { old: { kind: 'rev', rev: base }, new: { kind: 'worktree' } },
       };
     } else if (t === 'staged') {
       plan = {
         args: diff('--cached', base),
         includeUntracked: false,
         title: `Staged changes vs ${base}`,
+        sources: { old: { kind: 'rev', rev: base }, new: { kind: 'index' } },
       };
     } else if (t === 'working') {
       throw new Error('"working" (unstaged changes) cannot be compared with a ref');
     } else {
       const r = ref(t);
-      plan = { args: diff(base, r), includeUntracked: false, title: `${r} vs ${base}` };
+      plan = {
+        args: diff(base, r),
+        includeUntracked: false,
+        title: `${r} vs ${base}`,
+        sources: { old: { kind: 'rev', rev: base }, new: { kind: 'rev', rev: r } },
+      };
     }
   }
   if (options.context !== undefined) plan.context = options.context;

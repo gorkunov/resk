@@ -36,14 +36,45 @@ test.describe('diff panels', () => {
     ).toBeInViewport();
   });
 
-  test('panels stack in diff order regardless of click order', async ({ page, resk }) => {
+  test('a new file opens right below the panel in view, not in diff order', async ({
+    page,
+    resk,
+  }) => {
     await page.goto(resk.url);
     await highlight(page, 'utils/time.ts').click();
+    await expect(page.getByTestId('diff-column')).toHaveAttribute(
+      'data-visible',
+      'src/utils/clock.ts',
+    );
+
+    // README.md comes first in diff order but belongs below the file being read.
     await highlight(page, 'README').click();
     await expect(panels(page)).toHaveCount(2);
-    await expect(panels(page).nth(0)).toHaveAttribute('data-path', 'README.md');
-    await expect(panels(page).nth(1)).toHaveAttribute('data-path', 'src/utils/clock.ts');
-    await expect(page.getByTestId('layout')).toHaveAttribute('data-panels', '2');
+    await expect(panels(page).nth(0)).toHaveAttribute('data-path', 'src/utils/clock.ts');
+    await expect(panels(page).nth(1)).toHaveAttribute('data-path', 'README.md');
+    await expect(page.getByTestId('diff-column')).toHaveAttribute('data-visible', 'README.md');
+
+    await highlight(page, 'UserService').click();
+    await expect(panels(page).nth(2)).toHaveAttribute('data-path', 'src/services/user.ts');
+  });
+
+  test('scrolling back to an earlier panel makes the next file open below that one', async ({
+    page,
+    resk,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    await page.goto(resk.url);
+    await highlight(page, 'utils/time.ts').click();
+    await highlight(page, 'UserService').click();
+    await expect(panels(page)).toHaveCount(2);
+
+    const column = page.getByTestId('diff-column');
+    await column.evaluate((el) => el.scrollTo({ top: 0 }));
+    await expect(column).toHaveAttribute('data-visible', 'src/utils/clock.ts');
+
+    await highlight(page, 'README').click();
+    await expect(panels(page).nth(1)).toHaveAttribute('data-path', 'README.md');
+    await expect(panels(page).nth(2)).toHaveAttribute('data-path', 'src/services/user.ts');
   });
 
   test('a second highlight into the same file reuses the panel and moves the focus', async ({

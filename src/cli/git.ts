@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process';
-import type { GitPlan } from './git-plan.js';
+import { readFile } from 'node:fs/promises';
+import { isAbsolute, relative, resolve } from 'node:path';
+import type { ContentSource, GitPlan } from './git-plan.js';
 
 const MAX_BUFFER = 1024 * 1024 * 512;
 
@@ -61,6 +63,36 @@ async function untrackedPatch(
   // --no-index exits 1 when the files differ, which is the expected case.
   if (result.code > 1) throw new GitError(args, result.stderr);
   return result.stdout;
+}
+
+function isBinary(text: string): boolean {
+  return text.includes('\0');
+}
+
+/**
+ * Full text of one version of a file, for expanding unmodified context in the browser. Undefined
+ * when that version does not exist (added or deleted files), is binary, or cannot be read.
+ */
+export async function readContent(
+  source: ContentSource,
+  path: string,
+  repoRoot: string,
+): Promise<string | undefined> {
+  if (source.kind === 'worktree') {
+    const full = resolve(repoRoot, path);
+    const inside = relative(repoRoot, full);
+    if (inside.startsWith('..') || isAbsolute(inside)) return undefined;
+    try {
+      const text = await readFile(full, 'utf8');
+      return isBinary(text) ? undefined : text;
+    } catch {
+      return undefined;
+    }
+  }
+  const spec = source.kind === 'index' ? `:${path}` : `${source.rev}:${path}`;
+  const result = await runGit(['-c', 'core.quotepath=false', 'show', spec], repoRoot);
+  if (result.code !== 0) return undefined;
+  return isBinary(result.stdout) ? undefined : result.stdout;
 }
 
 /** Runs the plan from the repository root and returns the complete unified diff. */

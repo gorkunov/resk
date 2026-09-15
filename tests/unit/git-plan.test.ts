@@ -10,6 +10,7 @@ describe('buildGitPlan', () => {
       args: [...COMMON, 'diff', ...DIFF_FLAGS, 'HEAD'],
       includeUntracked: true,
       title: 'Working tree vs HEAD',
+      sources: { old: { kind: 'rev', rev: 'HEAD' }, new: { kind: 'worktree' } },
     });
     expect(buildGitPlan('.', undefined, { untracked: true }).args).toEqual([
       ...COMMON,
@@ -28,11 +29,13 @@ describe('buildGitPlan', () => {
       args: [...COMMON, 'diff', ...DIFF_FLAGS, '--cached'],
       includeUntracked: false,
       title: 'Staged changes',
+      sources: { old: { kind: 'rev', rev: 'HEAD' }, new: { kind: 'index' } },
     });
     expect(buildGitPlan('working', undefined, { untracked: true })).toEqual({
       args: [...COMMON, 'diff', ...DIFF_FLAGS],
       includeUntracked: true,
       title: 'Unstaged changes',
+      sources: { old: { kind: 'index' }, new: { kind: 'worktree' } },
     });
   });
 
@@ -41,6 +44,10 @@ describe('buildGitPlan', () => {
       args: [...COMMON, 'diff-tree', '--root', '-p', '--no-commit-id', ...DIFF_FLAGS, '6f4a9b7'],
       includeUntracked: false,
       title: 'Commit 6f4a9b7',
+      sources: {
+        old: { kind: 'rev', rev: '6f4a9b7^' },
+        new: { kind: 'rev', rev: '6f4a9b7' },
+      },
     });
     expect(buildGitPlan('@', undefined, { untracked: true }).args.at(-1)).toBe('HEAD');
     expect(buildGitPlan('@', undefined, { untracked: true }).title).toBe('Commit HEAD');
@@ -51,21 +58,25 @@ describe('buildGitPlan', () => {
       args: [...COMMON, 'diff', ...DIFF_FLAGS, 'main'],
       includeUntracked: true,
       title: 'Working tree vs main',
+      sources: { old: { kind: 'rev', rev: 'main' }, new: { kind: 'worktree' } },
     });
     expect(buildGitPlan('staged', 'main', { untracked: true })).toEqual({
       args: [...COMMON, 'diff', ...DIFF_FLAGS, '--cached', 'main'],
       includeUntracked: false,
       title: 'Staged changes vs main',
+      sources: { old: { kind: 'rev', rev: 'main' }, new: { kind: 'index' } },
     });
     expect(buildGitPlan('feature', 'main', { untracked: true })).toEqual({
       args: [...COMMON, 'diff', ...DIFF_FLAGS, 'main', 'feature'],
       includeUntracked: false,
       title: 'feature vs main',
+      sources: { old: { kind: 'rev', rev: 'main' }, new: { kind: 'rev', rev: 'feature' } },
     });
     expect(buildGitPlan('@', '@~1', { untracked: true })).toEqual({
       args: [...COMMON, 'diff', ...DIFF_FLAGS, 'HEAD~1', 'HEAD'],
       includeUntracked: false,
       title: 'HEAD vs HEAD~1',
+      sources: { old: { kind: 'rev', rev: 'HEAD~1' }, new: { kind: 'rev', rev: 'HEAD' } },
     });
   });
 

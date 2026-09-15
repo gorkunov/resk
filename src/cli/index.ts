@@ -11,11 +11,12 @@ import {
   type CliOptions,
 } from './options.js';
 import { buildGitPlan } from './git-plan.js';
-import { collectDiff, findRepoRoot, GitError } from './git.js';
+import { collectDiff, findRepoRoot, readContent, GitError } from './git.js';
 import { anchorWarnings } from './warnings.js';
 import { SessionStore, SessionStoreError, sessionRoot } from './session-store.js';
 import { parseUnifiedDiff } from '../shared/diff-parser.js';
 import type { SessionInfo } from '../shared/types.js';
+import type { ContentsProvider } from '../server/app.js';
 import { formatReviewJson, formatReviewMarkdown } from '../shared/output-format.js';
 import { ReviewSession } from '../server/session.js';
 import { createApp } from '../server/app.js';
@@ -56,7 +57,14 @@ async function readInput(path: string, what: string): Promise<string> {
   }
 }
 
-async function loadDiff(options: CliOptions): Promise<{ diff: string; title: string }> {
+interface LoadedDiff {
+  diff: string;
+  title: string;
+  /** Only git reviews can read whole files, so only they can expand unmodified context. */
+  contents?: ContentsProvider;
+}
+
+async function loadDiff(options: CliOptions): Promise<LoadedDiff> {
   if (options.diff !== undefined) {
     const diff = await readInput(options.diff, 'diff file');
     return { diff, title: options.diff === '-' ? 'Piped diff' : basename(options.diff) };
@@ -74,7 +82,18 @@ async function loadDiff(options: CliOptions): Promise<{ diff: string; title: str
     throw new ExitError((error as Error).message, 2, true);
   }
   try {
-    return { diff: await collectDiff(plan, root), title: `${basename(root)}: ${plan.title}` };
+    const diff = await collectDiff(plan, root);
+    const contents: ContentsProvider = async (file) => {
+      const [oldText, newText] = await Promise.all([
+        readContent(plan.sources.old, file.oldPath ?? file.path, root),
+        readContent(plan.sources.new, file.path, root),
+      ]);
+      const result: { old?: string; new?: string } = {};
+      if (oldText !== undefined) result.old = oldText;
+      if (newText !== undefined) result.new = newText;
+      return result;
+    };
+    return { diff, title: `${basename(root)}: ${plan.title}`, contents };
   } catch (error) {
     if (error instanceof GitError) throw new ExitError(error.message, 2);
     throw error;
@@ -122,7 +141,7 @@ async function run(argv: string[]): Promise<void> {
   }
 
   const summary = await readInput(options.summary, 'summary file');
-  const { diff, title: defaultTitle } = await loadDiff(options);
+  const { diff, title: defaultTitle, contents } = await loadDiff(options);
   const title = options.title ?? options.session ?? defaultTitle;
   const files = parseUnifiedDiff(diff);
   if (files.length === 0) log('warning: the diff is empty');
@@ -163,10 +182,11 @@ async function run(argv: string[]): Promise<void> {
   });
 
   const clientDir = resolve(dirname(fileURLToPath(import.meta.url)), '../client');
+  const expandable = contents !== undefined;
   const review = reviewSession
-    ? { title, summary, files, session: reviewSession.info }
-    : { title, summary, files };
-  const app = createApp({ review, session, clientDir });
+    ? { title, summary, files, expandable, session: reviewSession.info }
+    : { title, summary, files, expandable };
+  const app = createApp({ review, session, clientDir, ...(contents ? { contents } : {}) });
   try {
     server = await startServer(app, { host: options.host, port: options.port });
   } catch (error) {

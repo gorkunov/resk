@@ -2,12 +2,16 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
-import type { ReviewPayload } from '../shared/types.js';
+import type { FileChange, ReviewPayload } from '../shared/types.js';
 import { validateComments } from '../shared/comments.js';
 import type { ReviewSession } from './session.js';
 
+/** Reads both versions of a changed file. Absent when the review came from a patch file. */
+export type ContentsProvider = (file: FileChange) => Promise<{ old?: string; new?: string }>;
+
 export interface AppOptions {
   review: ReviewPayload;
+  contents?: ContentsProvider;
   session: ReviewSession;
   /** Directory holding the built client (index.html and assets). */
   clientDir: string;
@@ -31,11 +35,25 @@ const CONTENT_TYPES: Record<string, string> = {
   '.wasm': 'application/wasm',
 };
 
-export function createApp({ review, session, clientDir, heartbeatMs = 15_000 }: AppOptions): Hono {
+export function createApp({
+  review,
+  session,
+  clientDir,
+  contents,
+  heartbeatMs = 15_000,
+}: AppOptions): Hono {
   const app = new Hono();
   const root = resolve(clientDir);
 
   app.get('/api/review', (c) => c.json(review));
+
+  app.get('/api/contents', async (c) => {
+    const path = c.req.query('path');
+    const file = review.files.find((f) => f.path === path);
+    if (!contents || !file) return c.json({ error: 'no contents for this path' }, 404);
+    const text = await contents(file);
+    return c.json({ path: file.path, old: text.old ?? null, new: text.new ?? null });
+  });
 
   app.get('/api/comments', (c) => c.json(session.comments));
 

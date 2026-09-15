@@ -1,4 +1,4 @@
-import type { Comment, ReviewPayload } from '../shared/types.js';
+import type { Comment, FileContents, ReviewPayload } from '../shared/types.js';
 
 async function expectOk(response: Response): Promise<Response> {
   if (!response.ok) throw new Error(`${response.url} responded ${response.status}`);
@@ -11,6 +11,11 @@ export async function fetchReview(): Promise<ReviewPayload> {
 
 export async function fetchComments(): Promise<Comment[]> {
   return (await expectOk(await fetch('/api/comments'))).json() as Promise<Comment[]>;
+}
+
+export async function fetchFileContents(path: string): Promise<FileContents> {
+  const url = `/api/contents?path=${encodeURIComponent(path)}`;
+  return (await expectOk(await fetch(url))).json() as Promise<FileContents>;
 }
 
 export async function putComments(comments: Comment[]): Promise<void> {

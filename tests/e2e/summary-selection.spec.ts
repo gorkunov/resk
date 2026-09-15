@@ -12,6 +12,7 @@ function highlightedTexts(page: Page) {
 }
 
 async function clickHighlightedText(page: Page, text: string) {
+  await page.locator('[data-testid="summary-markdown"]').waitFor();
   const point = await page.evaluate((needle) => {
     const root = document.querySelector('[data-testid="summary-markdown"]')!;
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);

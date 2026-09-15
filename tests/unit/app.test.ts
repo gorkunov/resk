@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../../src/server/app.js';
 import { ReviewSession } from '../../src/server/session.js';
-import type { ReviewPayload } from '../../src/shared/types.js';
+import type { FileChange, ReviewPayload } from '../../src/shared/types.js';
 
-const review: ReviewPayload = { title: 'T', summary: '# S', files: [] };
+const review: ReviewPayload = { title: 'T', summary: '# S', files: [], expandable: false };
 const comment = {
   id: 'c1',
   target: { kind: 'summary' as const },
@@ -31,6 +31,32 @@ function build() {
   const session = new ReviewSession({ onFinish: () => {}, graceMs: 5000, keepAlive: true });
   const app = createApp({ review, session, clientDir });
   return { app, session };
+}
+
+const renamed: FileChange = {
+  path: 'src/new.ts',
+  oldPath: 'src/old.ts',
+  status: 'renamed',
+  binary: false,
+  additions: 1,
+  deletions: 1,
+  hunks: [],
+  patch: '',
+};
+
+function buildWithContents() {
+  const session = new ReviewSession({ onFinish: () => {}, graceMs: 5000, keepAlive: true });
+  const asked: FileChange[] = [];
+  const app = createApp({
+    review: { ...review, files: [renamed], expandable: true },
+    session,
+    clientDir,
+    contents: async (file) => {
+      asked.push(file);
+      return { old: 'old text\n', new: 'new text\n' };
+    },
+  });
+  return { app, asked };
 }
 
 describe('api', () => {
@@ -96,6 +122,26 @@ describe('static files', () => {
       expect(res.headers.get('content-type')).toMatch(/text\/html/);
       expect(await res.text()).toContain('<title>resk</title>');
     }
+  });
+
+  it('serves file contents for a changed file so context can be expanded', async () => {
+    const { app, asked } = buildWithContents();
+    const res = await app.request('/api/contents?path=src%2Fnew.ts');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ path: 'src/new.ts', old: 'old text\n', new: 'new text\n' });
+    expect(asked.map((f) => f.path)).toEqual(['src/new.ts']);
+  });
+
+  it('answers 404 for a path that is not part of the review', async () => {
+    const { app, asked } = buildWithContents();
+    const res = await app.request('/api/contents?path=%2Fetc%2Fpasswd');
+    expect(res.status).toBe(404);
+    expect(asked).toEqual([]);
+  });
+
+  it('answers 404 for contents when the review has no source for them', async () => {
+    const { app } = build();
+    expect((await app.request('/api/contents?path=anything')).status).toBe(404);
   });
 
   it('serves assets with their content types', async () => {

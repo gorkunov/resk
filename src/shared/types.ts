@@ -81,4 +81,13 @@ export interface ReviewPayload {
   summary: string;
   files: FileChange[];
   session?: SessionInfo;
+  /** True when the server can serve full file contents, so unmodified context can be expanded. */
+  expandable: boolean;
+}
+
+/** Both versions of a changed file, as far as they exist. */
+export interface FileContents {
+  path: string;
+  old: string | null;
+  new: string | null;
 }

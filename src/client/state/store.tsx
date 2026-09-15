@@ -1,6 +1,5 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -32,12 +31,7 @@ interface StoreProviderProps {
 }
 
 export function StoreProvider({ review, initialComments, children }: StoreProviderProps) {
-  const order = useMemo(() => review.files.map((f) => f.path), [review.files]);
-  const reducer = useCallback(
-    (state: AppState, action: Action) => reduce(state, action, order),
-    [order],
-  );
-  const [state, dispatch] = useReducer(reducer, undefined, () => ({
+  const [state, dispatch] = useReducer(reduce, undefined, () => ({
     ...initialState,
     theme: loadTheme(),
     comments: initialComments,
