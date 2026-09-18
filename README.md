@@ -11,20 +11,9 @@
   You review the places it points you at, not a list of changed files.
 </p>
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│ resk · feature/auth vs main                                  ◐   Finish   │
-├──────────────────────┬───────────────────────────────────────────────────┤
-│ ## Critical          │ ┌─ M src/services/user.ts   +40 −12   Unified  × ┐ │
-│ Token refresh moved  │ │  13  async refreshSession(token: RefreshToken)  │ │
-│ into [UserService]•  │ │  18 +  const timeout = 3000;                    │ │
-│ ...                  │ │       💬 Why is the timeout hardcoded?          │ │
-│ ## Minor             │ └─────────────────────────────────────────────────┘ │
-│ ...                  │ ┌─ R src/utils/clock.ts ← src/utils/time.ts  +1 −1 ┐ │
-│ Changed files (6)    │ │ ...                                              │ │
-│  M src/services/…  • │ └─────────────────────────────────────────────────┘ │
-└──────────────────────┴───────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="screenshots/main.png" alt="A resk review: the agent's write-up on the left, the code it points at on the right" width="900">
+</p>
 
 ## Why
 
