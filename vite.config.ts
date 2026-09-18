@@ -8,6 +8,19 @@ export default defineConfig({
   // App icons live at the repo root and are copied verbatim into the client build.
   publicDir: fileURLToPath(new URL('./icons', import.meta.url)),
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: [
+      // Swap shiki's full language bundle for a curated one; see src/client/shiki-subset.ts.
+      {
+        find: /^shiki$/,
+        replacement: fileURLToPath(new URL('./src/client/shiki-subset.ts', import.meta.url)),
+      },
+      {
+        find: /^shiki\/wasm$/,
+        replacement: fileURLToPath(new URL('./src/client/shiki-wasm-stub.ts', import.meta.url)),
+      },
+    ],
+  },
   build: {
     outDir: fileURLToPath(new URL('./dist/client', import.meta.url)),
     emptyOutDir: true,
