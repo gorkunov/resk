@@ -23,13 +23,10 @@ export function loadViewed(review: ReviewPayload): Viewed | undefined {
     const raw = localStorage.getItem(viewedStorageKey(review));
     if (!raw) return undefined;
     const parsed: unknown = JSON.parse(raw);
-    if (
-      typeof parsed === 'object' &&
-      parsed !== null &&
-      isStringArray((parsed as { paths?: unknown }).paths) &&
-      isStringArray((parsed as { anchors?: unknown }).anchors)
-    ) {
-      return parsed as Viewed;
+    // Entries written before reviewed state became file-level carry extra fields; take the paths.
+    if (typeof parsed === 'object' && parsed !== null) {
+      const paths = (parsed as { paths?: unknown }).paths;
+      if (isStringArray(paths)) return { paths };
     }
   } catch {
     // storage unavailable or corrupt

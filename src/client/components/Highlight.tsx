@@ -36,24 +36,21 @@ export function Highlight({ raw, children }: HighlightProps) {
   const { anchor } = resolved;
   const isWholeFile =
     anchor.side === undefined || anchor.start === undefined || anchor.end === undefined;
-  const anchorKey = isWholeFile ? path : `${path}#${anchor.side}:${anchor.start}-${anchor.end}`;
   const isOpen = state.panels.some((p) => p.path === path);
-  const reviewed = isWholeFile
-    ? state.viewed.paths.includes(path)
-    : state.viewed.anchors.includes(anchorKey);
+  // Opening a file reviews the file, so every highlight that points into it turns green.
+  const reviewed = state.viewed.paths.includes(path);
   const hasComments = commentsForPath(state.comments, path).length > 0;
 
   const open = (): void => {
-    if (!isWholeFile) {
-      dispatch({
-        type: 'openPanel',
-        path,
-        range: { side: anchor.side!, start: anchor.start!, end: anchor.end! },
-        anchorKey,
-      });
-    } else {
-      dispatch({ type: 'openPanel', path, anchorKey });
+    if (isWholeFile) {
+      dispatch({ type: 'openPanel', path });
+      return;
     }
+    dispatch({
+      type: 'openPanel',
+      path,
+      range: { side: anchor.side!, start: anchor.start!, end: anchor.end! },
+    });
   };
 
   const tone = isOpen

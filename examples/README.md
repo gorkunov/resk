@@ -26,8 +26,8 @@ node dist/cli/index.js --summary examples/summary.md --diff examples/changes.pat
 ## Things to try
 
 1. Read the summary and click a highlight such as **UserService.refreshSession()**. The panel opens
-   on the right, the linked lines flash and then fade, and the highlight turns green to mark it as reviewed
-   (that survives a reload). Click **hardcodes `max: 10`** in the same file group
+   on the right, the linked lines flash and then fade, and every highlight into that file turns green
+   to mark it reviewed (that survives a reload). Click **hardcodes `max: 10`** in the same file group
    to see the panel reused and scrolled.
 2. Open several files. Each one opens right below the file you were reading. Close one with ×;
    closing all of them keeps the two-pane layout so the summary stays put.

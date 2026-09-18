@@ -10,29 +10,32 @@ function fileRow(page: Page, path: string) {
 }
 
 test.describe('reviewed state', () => {
-  test('a clicked highlight turns green, stays green after the panel closes, and other highlights into the same file do not', async ({
+  test('opening a file marks every highlight into that file, and only that file', async ({
     page,
     resk,
   }) => {
     await page.goto(resk.url);
     const user = highlight(page, 'UserService');
     const remove = highlight(page, 'remove()');
+    const other = highlight(page, 'README');
     await expect(user).toHaveAttribute('data-state', 'default');
     await expect(user).toHaveAttribute('data-reviewed', 'false');
 
+    // Both highlights point into src/services/user.ts.
     await user.click();
     await expect(user).toHaveAttribute('data-state', 'open');
     await expect(user).toHaveAttribute('data-reviewed', 'true');
     await expect(remove).toHaveAttribute('data-state', 'open');
-    await expect(remove).toHaveAttribute('data-reviewed', 'false');
+    await expect(remove).toHaveAttribute('data-reviewed', 'true');
+    await expect(other).toHaveAttribute('data-reviewed', 'false');
 
     await page
       .locator('[data-testid="panel"][data-path="src/services/user.ts"]')
       .getByTestId('panel-close')
       .click();
     await expect(user).toHaveAttribute('data-state', 'reviewed');
-    await expect(user).toHaveAttribute('data-reviewed', 'true');
-    await expect(remove).toHaveAttribute('data-state', 'default');
+    await expect(remove).toHaveAttribute('data-state', 'reviewed');
+    await expect(other).toHaveAttribute('data-state', 'default');
   });
 
   test('opening a file marks its row as reviewed and a whole-file highlight follows the row', async ({
@@ -63,8 +66,9 @@ test.describe('reviewed state', () => {
 
     await page.reload();
     await expect(highlight(page, 'UserService')).toHaveAttribute('data-state', 'reviewed');
+    await expect(highlight(page, 'remove()')).toHaveAttribute('data-state', 'reviewed');
     await expect(fileRow(page, 'README.md')).toHaveAttribute('data-reviewed', 'true');
-    await expect(highlight(page, 'remove()')).toHaveAttribute('data-state', 'default');
+    await expect(highlight(page, 'auth/token.ts')).toHaveAttribute('data-state', 'default');
   });
 });
 

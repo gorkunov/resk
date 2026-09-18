@@ -19,10 +19,9 @@ export interface PanelState {
   focus?: Focus;
 }
 
-/** What the reviewer has looked at: opened file paths and clicked highlight anchors. */
+/** What the reviewer has looked at: the files whose panel has been opened. */
 export interface Viewed {
   paths: string[];
-  anchors: string[];
 }
 
 export interface AppState {
@@ -43,7 +42,7 @@ export interface AppState {
 }
 
 export type Action =
-  | { type: 'openPanel'; path: string; range?: Range; anchorKey?: string }
+  | { type: 'openPanel'; path: string; range?: Range }
   | { type: 'setVisiblePanel'; path: string | undefined }
   | { type: 'hydrateViewed'; viewed: Viewed }
   | { type: 'closePanel'; path: string }
@@ -58,7 +57,7 @@ export type Action =
 export const initialState: AppState = {
   panels: [],
   splitLayout: false,
-  viewed: { paths: [], anchors: [] },
+  viewed: { paths: [] },
   theme: 'system',
   comments: [],
 };
@@ -73,10 +72,9 @@ function addUnique(list: string[], value: string | undefined): string[] {
   return value === undefined || list.includes(value) ? list : [...list, value];
 }
 
-function markViewed(viewed: Viewed, path: string, anchorKey: string | undefined): Viewed {
+function markViewed(viewed: Viewed, path: string): Viewed {
   const paths = addUnique(viewed.paths, path);
-  const anchors = addUnique(viewed.anchors, anchorKey);
-  return paths === viewed.paths && anchors === viewed.anchors ? viewed : { paths, anchors };
+  return paths === viewed.paths ? viewed : { paths };
 }
 
 /**
@@ -116,7 +114,7 @@ export function reduce(state: AppState, action: Action): AppState {
         splitLayout: true,
         visiblePath: action.path,
         scrollTarget: { path: action.path, nonce },
-        viewed: markViewed(state.viewed, action.path, action.anchorKey),
+        viewed: markViewed(state.viewed, action.path),
       };
     }
     case 'setVisiblePanel': {
