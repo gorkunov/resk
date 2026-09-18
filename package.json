@@ -1,7 +1,7 @@
 {
-  "name": "resk",
+  "name": "resk-review",
   "version": "0.1.0",
-  "description": "Summary-first local code review for AI coding agents",
+  "description": "Context-first local code review for AI coding agents",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "skills",
+    "icons",
     "README.md"
   ],
   "engines": {
@@ -67,9 +68,14 @@
     "vite": "^7.0.0",
     "vitest": "^4.0.0"
   },
+  "author": "Alex Gorkunov",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alex-gorkunov/resk"
+    "url": "git+https://github.com/alex-gorkunov/resk.git"
+  },
+  "homepage": "https://github.com/alex-gorkunov/resk#readme",
+  "bugs": {
+    "url": "https://github.com/alex-gorkunov/resk/issues"
   },
   "keywords": [
     "code-review",
@@ -77,6 +83,8 @@
     "ai",
     "agent",
     "claude",
+    "claude-code",
+    "agent-skill",
     "cli",
     "react"
   ],

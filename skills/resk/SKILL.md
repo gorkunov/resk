@@ -1,9 +1,9 @@
 ---
 name: resk
-description: After completing an implementation, ask the user for a code review through resk. Pick a session key for the piece of work, write an importance-ordered Markdown summary with diff: anchors, run the resk CLI, treat the printed comments as work items, and report each follow-up round as an update in the same session.
+description: Ask the user for a code review through resk, including whenever they say "resk" with or without a target in plain words ("resk", "resk last two commits", "resk the auth changes"). Pick a session key for the piece of work, write an importance-ordered Markdown account of the change with diff: anchors, run resk, treat the printed comments as work items, and report each follow-up round as an update in the same session.
 ---
 
-# resk: summary-first code review
+# resk: context-first code review
 
 resk opens a browser page where the user reads **your summary of the changes** first and drills
 into the diff through highlights you place in the text. The user comments on lines, files, or the
@@ -17,6 +17,21 @@ first run shows your summary as the **Initial Round**; every later run with the 
 
 After you have finished a change and before you commit or hand over, whenever the user asks for a
 review, and again after you have addressed the comments of an earlier round.
+
+**"resk" is the whole command.** The user says `resk`, optionally followed by what they want looked
+at in plain words. Work out the target yourself and never make them learn flags:
+
+| They say                            | Target you pass                                                     |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| `resk`                              | `.` when the work tree has changes, otherwise `@` (the last commit) |
+| `resk last two commits`             | `HEAD HEAD~2` (any "last N" is `HEAD HEAD~N`)                       |
+| `resk this branch` / `against main` | `@ main`, or the branch's real base                                 |
+| `resk the auth changes` / a topic   | the target that contains that work; say which you picked            |
+| `resk staged` / `what I staged`     | `staged`                                                            |
+| `resk <sha>`                        | that commit                                                         |
+
+If the request is genuinely ambiguous, pick the reading that covers more of the work, and say in one
+line what you reviewed. Do not ask a question that a sensible default already answers.
 
 ## Sessions: one key per piece of work
 
@@ -46,16 +61,19 @@ review, and again after you have addressed the comments of an earlier round.
      line range for anything you explain in words; use whole-file anchors for files you only list.
    - Mention every changed file at least once. A bare inline code span that equals a changed path
      (`` `src/utils/time.ts` ``) is automatically clickable.
-2. **Run resk** with the session key and the target that matches the work:
+2. **Run resk** with the session key and the target that matches the work. Use the `resk` command
+   when it is on PATH, otherwise `npx -y resk-review@latest`, which needs no install:
 
    ```bash
-   resk --summary /tmp/resk-summary.md --session feat-refresh-tokens @ main   # branch vs main
-   resk --summary /tmp/resk-summary.md --session fix-1234-timeout             # uncommitted work vs HEAD
-   resk --summary /tmp/resk-summary.md --session release-notes staged         # staged changes only
-   resk --summary /tmp/resk-summary.md --session hotfix-6f4a9b7 6f4a9b7       # a single commit
+   npx -y resk-review@latest --summary /tmp/resk-summary.md --session feat-refresh @ main
+   npx -y resk-review@latest --summary /tmp/resk-summary.md --session fix-1234 HEAD HEAD~2
+   npx -y resk-review@latest --summary /tmp/resk-summary.md --session fix-1234-timeout
+   npx -y resk-review@latest --summary /tmp/resk-summary.md --session release-notes staged
    ```
 
-   Use `--no-open` if the environment cannot open a browser; resk prints the URL on stderr.
+   With no target it reviews uncommitted work against HEAD; `staged`, `working`, a ref, or
+   `<target> <base>` cover the rest. Use `--no-open` if the environment cannot open a browser;
+   resk prints the URL on stderr.
 
 3. **Fix anchor warnings.** Lines like `resk: warning: anchor "diff:src/foo.ts#L10" ...` on stderr
    mean a highlight will not work. Correct the summary and run again if practical.
