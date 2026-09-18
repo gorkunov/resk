@@ -71,11 +71,11 @@
   "author": "Alex Gorkunov",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alex-gorkunov/resk.git"
+    "url": "git+https://github.com/gorkunov/resk.git"
   },
-  "homepage": "https://github.com/alex-gorkunov/resk#readme",
+  "homepage": "https://github.com/gorkunov/resk#readme",
   "bugs": {
-    "url": "https://github.com/alex-gorkunov/resk/issues"
+    "url": "https://github.com/gorkunov/resk/issues"
   },
   "keywords": [
     "code-review",

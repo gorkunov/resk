@@ -49,7 +49,7 @@ no hosting, no GitHub. One local page, one reviewer, one review.
 resk is a skill for your coding agent. Add it once:
 
 ```bash
-npx skills add alex-gorkunov/resk
+npx skills add gorkunov/resk
 ```
 
 That covers Claude Code, Codex, Cursor, OpenCode and the rest of the agents
