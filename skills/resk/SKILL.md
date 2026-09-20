@@ -1,6 +1,6 @@
 ---
 name: resk
-description: Ask the user for a code review through resk, including whenever they say "resk" with or without a target in plain words ("resk", "resk last two commits", "resk the auth changes"). Pick a session key for the piece of work, write an importance-ordered Markdown account of the change with diff: anchors, run resk, treat the printed comments as work items, and report each follow-up round as an update in the same session.
+description: 'Ask the user for a code review through resk, including whenever they say "resk" with or without a target in plain words ("resk", "resk last two commits", "resk the auth changes"). Pick a session key for the piece of work, write an importance-ordered Markdown account of the change with diff: anchors, run resk, treat the printed comments as work items, and report each follow-up round as an update in the same session.'
 ---
 
 # resk: context-first code review
