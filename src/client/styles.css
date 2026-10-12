@@ -50,6 +50,9 @@ body {
 }
 .summary-markdown code {
   @apply rounded bg-neutral-100 px-1 py-0.5 font-mono text-[13px] dark:bg-neutral-800;
+  /* File paths and identifiers have no spaces to break at, and would widen the whole column. */
+  overflow-wrap: anywhere;
+  box-decoration-break: clone;
 }
 .summary-markdown pre {
   @apply my-4 overflow-x-auto rounded-lg bg-neutral-100 p-4 font-mono text-[13px] leading-6 dark:bg-neutral-900;
@@ -63,6 +66,7 @@ body {
 }
 .summary-markdown a[href] {
   @apply text-sky-700 underline decoration-sky-300 underline-offset-2 dark:text-sky-400 dark:decoration-sky-700;
+  overflow-wrap: anywhere;
 }
 .summary-markdown blockquote {
   @apply my-3 border-l-4 border-neutral-200 pl-4 text-neutral-600 dark:border-neutral-700 dark:text-neutral-400;

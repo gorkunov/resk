@@ -1,0 +1,17 @@
+diff --git a/apps/pt/priv/repo/migrations/20261008130000_add_ens_expert_status_to_qualifications.exs b/apps/pt/priv/repo/migrations/20261008130000_add_ens_expert_status_to_qualifications.exs
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/apps/pt/priv/repo/migrations/20261008130000_add_ens_expert_status_to_qualifications.exs
+@@ -0,0 +1,3 @@
++defmodule Pt.Repo.Migrations.AddEnsExpertStatusToQualifications do
++  use Ecto.Migration
++end
+diff --git a/lib/short.ex b/lib/short.ex
+index 1111111..2222222 100644
+--- a/lib/short.ex
++++ b/lib/short.ex
+@@ -1,2 +1,2 @@
+-def old, do: 1
++def new, do: 2
+ # tail
