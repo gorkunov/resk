@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "resk": "./dist/cli/index.js"
+    "resk": "dist/cli/index.js"
   },
   "files": [
     "dist",
